@@ -14,7 +14,11 @@ from typing import List, Dict, Optional, Tuple
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler('transcript_refiner.log'),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -379,96 +383,60 @@ Please provide only the corrected text, without any explanations."""
     def process_session(self, session_id: str):
         """Process all unprocessed segments for a session."""
         try:
-            logger.info("Starting to process session %s", session_id)
+            # Get all unprocessed segments for this session
             segments = get_unrefined_segments(session_id)
+            
             if not segments:
-                logger.info("No unprocessed segments found for session %s", session_id)
+                logger.info(f"No unprocessed segments found for session {session_id}")
                 return
-                
-            # Sort segments by timestamp
+            
+            logger.info(f"Processing {len(segments)} unprocessed segments for session {session_id}")
+            
+            # Sort segments by start time
             segments.sort(key=lambda x: float(x['start_time']))
             
-            # First pass: Basic diarization grouping
-            current_speaker = None
-            current_group = []
-            current_text = []
-            current_start = None
-            current_end = None
+            # Group segments by speaker
+            speaker_groups = {}
             
+            # First pass: group segments by speaker
             for segment in segments:
                 speaker_id = segment['speaker_id']
-                start_time = float(segment['start_time'])
-                end_time = float(segment['end_time'])
-                
-                # If speaker changes, create a new refined segment
-                if current_speaker is not None and current_speaker != speaker_id:
-                    # Create refined segment for previous speaker's group
-                    refined_id = insert_refined_segment(
-                        session_id=session_id,
-                        refined_speaker_id=str(current_speaker),
-                        text=" ".join(current_text),
-                        start_time=current_start,
-                        end_time=current_end,
-                        confidence_score=0.5,  # Placeholder confidence until Phase 1
-                        source_segments=json.dumps([s['id'] for s in current_group]),
-                        metadata={
-                            'original_speaker': current_group[0]['speaker_name'],
-                            'original_speaker_id': current_speaker,
-                            'start_time': current_start,
-                            'end_time': current_end,
-                            'phase': 0,  # Phase 0 indicates basic diarization only
-                            'is_locked': False,
-                            'is_combined': len(current_group) > 1,
-                            'needs_refinement': True
-                        }
-                    )
-                    logger.debug(f"Created basic diarization segment for speaker {current_speaker} with {len(current_group)} raw segments")
-                    
-                    # Reset for new speaker
-                    current_group = []
-                    current_text = []
-                    current_start = None
-                    current_end = None
-                
-                # Initialize or update current group
-                if not current_group:
-                    current_start = start_time
-                    current_speaker = speaker_id
-                
-                current_group.append(segment)
-                current_text.append(segment['text'].strip())
-                current_end = end_time
+                if speaker_id not in speaker_groups:
+                    speaker_groups[speaker_id] = []
+                speaker_groups[speaker_id].append(segment)
             
-            # Handle last group
-            if current_group:
+            # Second pass: process each speaker's segments
+            for speaker_id, speaker_segments in speaker_groups.items():
+                # Sort segments by start time
+                speaker_segments.sort(key=lambda x: float(x['start_time']))
+                
+                # Combine all segments for this speaker
+                combined_text, start_time, end_time = self.combine_segments(speaker_segments)
+                
+                # Create refined segment with confidence=0.1 to signal speaker change
                 refined_id = insert_refined_segment(
                     session_id=session_id,
-                    refined_speaker_id=str(current_speaker),
-                    text=" ".join(current_text),
-                    start_time=current_start,
-                    end_time=current_end,
-                    confidence_score=0.5,  # Placeholder confidence until Phase 1
-                    source_segments=json.dumps([s['id'] for s in current_group]),
-                    metadata={
-                        'original_speaker': current_group[0]['speaker_name'],
-                        'original_speaker_id': current_speaker,
-                        'start_time': current_start,
-                        'end_time': current_end,
-                        'phase': 0,  # Phase 0 indicates basic diarization only
+                    refined_speaker_id=speaker_id,
+                    text=combined_text,
+                    start_time=start_time,
+                    end_time=end_time,
+                    confidence_score=0.1,  # Signal ready for Phase 1
+                    source_segments=json.dumps([s['id'] for s in speaker_segments]),
+                    metadata=json.dumps({
+                        'phase': 0,
                         'is_locked': False,
-                        'is_combined': len(current_group) > 1,
-                        'needs_refinement': True
-                    }
+                        'needs_refinement': True,
+                        'grouping_reason': 'speaker_group',
+                        'confidence': 0.1,
+                        'is_complete': self.is_complete_sentence(combined_text)
+                    })
                 )
-                logger.debug(f"Created basic diarization segment for speaker {current_speaker} with {len(current_group)} raw segments")
+                logger.info(f"Created refined segment {refined_id} from {len(speaker_segments)} segments (speaker: {speaker_id})")
             
-            # Second pass: Apply Phase 1 refinement to completed diarization groups
-            # This will be handled in a separate method call to avoid processing partial groups
-            
-            logger.info("Completed basic diarization for session %s", session_id)
-            
+            logger.info(f"Completed basic diarization for session {session_id}")
+                    
         except Exception as e:
-            logger.error("Error processing session %s: %s", session_id, e, exc_info=True)
+            logger.error(f"Error processing session {session_id}: {e}")
             raise
 
     def refine_diarized_segments(self, session_id: str):
@@ -477,7 +445,9 @@ Please provide only the corrected text, without any explanations."""
             # Get all segments that need refinement
             query = '''
                 SELECT * FROM refined_segments 
-                WHERE session_id = ? AND phase = 0 AND needs_refinement = 1
+                WHERE session_id = ? 
+                AND phase = 0 
+                AND json_extract(metadata, '$.needs_refinement') = 1
                 ORDER BY start_time
             '''
             with get_db() as conn:
@@ -488,33 +458,34 @@ Please provide only the corrected text, without any explanations."""
             logger.debug(f"Found {len(segments_to_refine)} segments to refine for session {session_id}")
             
             for segment in segments_to_refine:
-                # Get metadata - convert Row to dict for JSON serialization
-                segment_dict = dict(segment)
-                metadata = json.loads(segment_dict['metadata']) if segment_dict['metadata'] else {}
-                
-                # Check if we should lock based on previous attempts
-                should_lock = False
-                lock_reason = None
-                
-                # 1. High confidence and complete
-                if metadata.get('confidence', 0) >= 0.8 and metadata.get('is_complete', False):
-                    should_lock = True
-                    lock_reason = "high_confidence_complete"
-                
-                # 2. Multiple refinement attempts (3 or more)
-                elif metadata.get('refinement_attempts', 0) >= 3:
-                    should_lock = True
-                    lock_reason = "max_attempts"
-                
-                # 3. Time elapsed (5 minutes or more)
-                elif metadata.get('first_attempt_time'):
-                    first_attempt = datetime.fromisoformat(metadata['first_attempt_time'])
-                    if (datetime.now() - first_attempt).total_seconds() > 300:  # 5 minutes
+                try:
+                    # Get metadata - convert Row to dict for JSON serialization
+                    segment_dict = dict(segment)
+                    metadata = json.loads(segment_dict['metadata']) if segment_dict['metadata'] else {}
+                    
+                    # Check if we should lock based on previous attempts
+                    should_lock = False
+                    lock_reason = None
+                    
+                    # 1. High confidence and complete
+                    if metadata.get('confidence', 0) >= 0.8 and metadata.get('is_complete', False):
                         should_lock = True
-                        lock_reason = "time_elapsed"
-                
-                # Call OpenAI to refine the text
-                prompt = f"""Please refine this transcript segment into proper sentences:
+                        lock_reason = "high_confidence_complete"
+                    
+                    # 2. Multiple refinement attempts (3 or more)
+                    elif metadata.get('refinement_attempts', 0) >= 3:
+                        should_lock = True
+                        lock_reason = "max_attempts"
+                    
+                    # 3. Time elapsed (5 minutes or more)
+                    elif metadata.get('first_attempt_time'):
+                        first_attempt = datetime.fromisoformat(metadata['first_attempt_time'])
+                        if (datetime.now() - first_attempt).total_seconds() > 300:  # 5 minutes
+                            should_lock = True
+                            lock_reason = "time_elapsed"
+                    
+                    # Call OpenAI to refine the text
+                    prompt = f"""Please refine this transcript segment into proper sentences:
 
 Original text: {segment_dict['text']}
 
@@ -530,7 +501,6 @@ Text: [refined text]
 Confidence: [0-1 score for how confident you are in the refinement]
 Complete: [true/false for whether this forms complete sentence(s)]"""
 
-                try:
                     response = call_openai_text(prompt)
                     if response:
                         # Parse OpenAI response
@@ -596,7 +566,7 @@ Complete: [true/false for whether this forms complete sentence(s)]"""
                     logger.debug("No pending sessions found, waiting...")
                     time.sleep(1)
                     continue
-                
+                    
                 for session_id in pending_sessions:
                     try:
                         # First pass: Basic diarization grouping
@@ -604,14 +574,12 @@ Complete: [true/false for whether this forms complete sentence(s)]"""
                         
                         # Second pass: Apply refinement to completed groups
                         self.refine_diarized_segments(session_id)
-                        
                     except Exception as e:
                         logger.error("Error processing session %s: %s", session_id, e, exc_info=True)
                         continue
-                            
+                    
                 logger.debug("Waiting 1 second before next check...")
                 time.sleep(1)
-                
             except Exception as e:
                 logger.error("Error in main loop: %s", e, exc_info=True)
                 logger.info("Waiting 5 seconds before retrying...")

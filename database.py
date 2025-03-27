@@ -2,8 +2,11 @@ import sqlite3
 from datetime import datetime
 from contextlib import contextmanager
 import json
+from typing import List, Dict, Optional
+import logging
 
 DB_PATH = 'thalamus.db'
+logger = logging.getLogger(__name__)
 
 @contextmanager
 def get_db():
@@ -119,45 +122,57 @@ def insert_segment(session_id, speaker_id, text, start_time, end_time, log_times
         conn.commit()
         return cur.lastrowid
 
-def get_unrefined_segments(session_id=None):
-    """Get segments that haven't been refined yet."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        
-        # Get all processed segment IDs from refined segments
-        cur.execute('SELECT source_segments FROM refined_segments')
-        processed_ids = set()
-        for row in cur.fetchall():
-            try:
-                ids = json.loads(row[0])
-                processed_ids.update(ids)
-            except (json.JSONDecodeError, TypeError):
-                continue
-        
-        # Build the base query
-        base_query = '''
+def get_unrefined_segments(session_id: Optional[str] = None) -> List[Dict]:
+    """Get all unprocessed segments, optionally filtered by session_id."""
+    try:
+        query = '''
+            WITH processed_segments AS (
+                SELECT DISTINCT CAST(value AS INTEGER) as segment_id
+                FROM refined_segments rs, json_each(rs.source_segments)
+                WHERE rs.source_segments IS NOT NULL
+                AND rs.confidence_score >= 0.8
+                AND json_extract(rs.metadata, '$.is_locked') = 1
+            ),
+            latest_refined AS (
+                SELECT rs.refined_speaker_id, rs.session_id, MAX(rs.id) as latest_id
+                FROM refined_segments rs
+                GROUP BY rs.refined_speaker_id, rs.session_id
+            )
             SELECT s.*, sp.speaker_name 
             FROM segments s
             JOIN speakers sp ON s.speaker_id = sp.id
-            WHERE s.id NOT IN ({})
+            LEFT JOIN latest_refined lr ON lr.refined_speaker_id = s.speaker_id AND lr.session_id = s.session_id
+            WHERE s.id NOT IN (SELECT segment_id FROM processed_segments)
+            AND (lr.latest_id IS NULL OR s.id NOT IN (
+                SELECT CAST(value AS INTEGER) as segment_id
+                FROM refined_segments rs, json_each(rs.source_segments)
+                WHERE rs.id = lr.latest_id
+            ))
         '''
-        
-        # Handle empty processed_ids case
-        if not processed_ids:
-            processed_ids = {-1}  # Use dummy ID that won't match anything
-            
-        placeholders = ','.join('?' * len(processed_ids))
-        query = base_query.format(placeholders)
-        
+        params = []
         if session_id:
             query += ' AND s.session_id = ?'
-            cur.execute(query + ' ORDER BY s.start_time', 
-                       tuple(processed_ids) + (session_id,))
-        else:
-            cur.execute(query + ' ORDER BY s.start_time', 
-                       tuple(processed_ids))
+            params.append(session_id)
+        
+        query += ' ORDER BY s.start_time'
+        
+        logger.debug(f"Executing query: {query}")
+        logger.debug(f"With params: {params}")
+        
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            rows = cur.fetchall()
             
-        return cur.fetchall()
+            # Convert rows to dicts
+            result = [dict(row) for row in rows]
+            logger.debug(f"Found {len(result)} unrefined segments")
+            return result
+            
+    except Exception as e:
+        logger.error(f"Error getting unrefined segments: {e}")
+        logger.exception(e)  # This will print the full stack trace
+        return []
 
 def insert_refined_segment(session_id, refined_speaker_id, text, start_time, end_time,
                          confidence_score, source_segments, metadata=None):
