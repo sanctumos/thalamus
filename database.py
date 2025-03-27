@@ -68,6 +68,7 @@ def init_db():
                 source_segments TEXT NOT NULL,
                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_locked BOOLEAN DEFAULT 0,
+                phase INTEGER DEFAULT 0,
                 metadata TEXT,
                 FOREIGN KEY (session_id) REFERENCES sessions (id)
             )
@@ -186,4 +187,20 @@ def get_refined_segments(session_id=None):
             ''', (session_id,))
         else:
             cur.execute('SELECT * FROM refined_segments ORDER BY start_time')
+        return cur.fetchall()
+
+def get_locked_segments(session_id, limit=None):
+    """Get the most recent locked refined segments for a session."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        query = '''
+            SELECT * FROM refined_segments 
+            WHERE session_id = ? AND is_locked = 1
+            ORDER BY start_time DESC
+        '''
+        if limit:
+            query += ' LIMIT ?'
+            cur.execute(query, (session_id, limit))
+        else:
+            cur.execute(query, (session_id,))
         return cur.fetchall() 
