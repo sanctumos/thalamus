@@ -700,7 +700,6 @@ venv/Lib/site-packages/urllib3/http2/__pycache__/probe.cpython-312.pyc
 venv/Lib/site-packages/urllib3/util/__init__.py
 venv/Lib/site-packages/urllib3/util/connection.py
 venv/Lib/site-packages/urllib3/util/proxy.py
-venv/Lib/site-packages/urllib3/util/request.py
 venv/Lib/site-packages/urllib3/util/response.py
 venv/Lib/site-packages/urllib3/util/retry.py
 venv/Lib/site-packages/urllib3/util/ssl_.py
@@ -738,9 +737,12 @@ venv/Scripts/pip3.12.exe
 venv/Scripts/pip3.exe
 venv/Scripts/python.exe
 venv/Scripts/pythonw.exe
-__pycache__/database.cpython-312.pyc
-transcript_refiner.log
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db
 thalamus.db
-__pycache__/database.cpython-312.pyc
-
-thalamus.db
+.env
+backup/

@@ -16,21 +16,21 @@ def check_db():
     cur.execute('SELECT * FROM speakers')
     speakers = cur.fetchall()
     for speaker in speakers:
-        print(f"ID: {speaker['id']}, Speaker ID: {speaker['speaker_id']}, Name: {speaker['speaker_name']}, Is User: {speaker['is_user']}")
+        print(f"ID: {speaker['id']}, Speaker ID: {speaker['speaker_id']}, Name: {speaker['name']}, Is User: {speaker['is_user']}")
     
     print("\n=== Raw Segments ===")
     cur.execute('''
-        SELECT s.*, sp.speaker_name 
-        FROM segments s
+        SELECT s.*, sp.name as speaker_name 
+        FROM raw_segments s
         JOIN speakers sp ON s.speaker_id = sp.id
-        ORDER BY s.log_timestamp, s.id
+        ORDER BY s.timestamp
     ''')
     segments = cur.fetchall()
     for segment in segments:
         print(f"ID: {segment['id']}, Session: {segment['session_id']}, Speaker: {segment['speaker_name']}")
         print(f"Text: {segment['text']}")
         print(f"Time: {segment['start_time']} -> {segment['end_time']}")
-        print(f"Timestamp: {segment['log_timestamp']}\n")
+        print(f"Timestamp: {segment['timestamp']}\n")
     
     print("\n=== Refined Segments ===")
     cur.execute('''
