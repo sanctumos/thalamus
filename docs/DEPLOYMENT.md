@@ -11,7 +11,6 @@
 
 ### Required Accounts
 - **OpenAI API**: Account with API key and credits
-- **Optional**: PostgreSQL database (for production)
 
 ## Installation
 
@@ -37,7 +36,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Note**: If `psycopg2-binary` fails on Windows, install PostgreSQL development tools or use SQLite only.
+**Note**: SQLite is included with Python and requires no additional setup.
 
 ### 4. Environment Configuration
 Create `.env` file in project root:
@@ -97,8 +96,7 @@ sudo apt update && sudo apt upgrade -y
 # Install Python and pip
 sudo apt install python3 python3-pip python3-venv
 
-# Install PostgreSQL (optional)
-sudo apt install postgresql postgresql-contrib
+# SQLite is included with Python - no additional installation needed
 ```
 
 #### 2. Application Setup
@@ -217,22 +215,7 @@ server {
 ```
 
 #### Database Configuration
-For PostgreSQL production setup:
-
-```bash
-# Install PostgreSQL
-sudo apt install postgresql postgresql-contrib
-
-# Create database and user
-sudo -u postgres psql
-CREATE DATABASE thalamus;
-CREATE USER thalamus_user WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE thalamus TO thalamus_user;
-\q
-
-# Update environment
-echo "DATABASE_URL=postgresql://thalamus_user:secure_password@localhost/thalamus" >> .env
-```
+SQLite is used by default and requires no additional configuration. The database file will be created automatically when you run `python init_db.py`.
 
 ## Monitoring and Logging
 
@@ -329,8 +312,8 @@ mkdir -p $BACKUP_DIR
 # SQLite backup
 cp /opt/thalamus/thalamus.db $BACKUP_DIR/thalamus_$DATE.db
 
-# PostgreSQL backup (if using)
-pg_dump thalamus > $BACKUP_DIR/thalamus_$DATE.sql
+# SQLite backup (database file)
+cp /opt/thalamus/thalamus.db $BACKUP_DIR/thalamus_$DATE.db
 
 # Keep only last 7 days
 find $BACKUP_DIR -name "thalamus_*" -mtime +7 -delete
@@ -341,8 +324,8 @@ find $BACKUP_DIR -name "thalamus_*" -mtime +7 -delete
 # Restore SQLite database
 cp /opt/backups/thalamus/thalamus_20250101_120000.db /opt/thalamus/thalamus.db
 
-# Restore PostgreSQL database
-psql thalamus < /opt/backups/thalamus/thalamus_20250101_120000.sql
+# Restore SQLite database
+cp /opt/backups/thalamus/thalamus_20250101_120000.db /opt/thalamus/thalamus.db
 ```
 
 ## Security Considerations
@@ -364,10 +347,10 @@ sudo ufw enable
 ```
 
 ### Database Security
-```sql
--- PostgreSQL security
-ALTER USER thalamus_user PASSWORD 'new_secure_password';
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
+```bash
+# SQLite file permissions
+sudo chmod 600 /opt/thalamus/thalamus.db
+sudo chown thalamus:thalamus /opt/thalamus/thalamus.db
 ```
 
 ## Performance Tuning

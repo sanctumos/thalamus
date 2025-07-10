@@ -293,8 +293,8 @@ json_array_contains(arr_str, value)
 ### Production Environment
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Load Balancer  │───▶│  Thalamus Apps  │───▶│  PostgreSQL     │
-│                 │    │  (Multiple)     │    │  (Primary)      │
+│  Load Balancer  │───▶│  Thalamus Apps  │───▶│  SQLite DB      │
+│                 │    │  (Multiple)     │    │  (File-based)   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼

@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - python-dotenv 1.0.0 - Environment variable management
 - openai 1.3.0 - OpenAI API client
 - sqlalchemy 2.0.23 - Database ORM
-- psycopg2-binary 2.9.9 - PostgreSQL adapter (optional)
+- SQLite database for data persistence
 - alembic 1.12.1 - Database migrations
 
 ### Configuration

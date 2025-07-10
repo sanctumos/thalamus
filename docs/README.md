@@ -112,7 +112,6 @@ Refined Transcripts ← Transcript Refiner ← OpenAI API
 - python-dotenv 1.0.0 - Environment variable management
 - openai 1.3.0 - OpenAI API client
 - sqlalchemy 2.0.23 - Database ORM
-- psycopg2-binary 2.9.9 - PostgreSQL adapter (optional)
 - alembic 1.12.1 - Database migrations
 
 ## Usage Patterns
@@ -173,10 +172,10 @@ Refined Transcripts ← Transcript Refiner ← OpenAI API
 ## Troubleshooting
 
 ### Common Issues
-1. **PostgreSQL Installation** - psycopg2-binary may fail on Windows
-2. **OpenAI API Limits** - Rate limiting and quota management
-3. **Database Locks** - Concurrent access issues
-4. **Memory Usage** - Large session processing
+1. **OpenAI API Limits** - Rate limiting and quota management
+2. **Database Locks** - Concurrent access issues
+3. **Memory Usage** - Large session processing
+4. **SQLite File Permissions** - Ensure write access to database file
 
 ### Debug Commands
 ```bash
