@@ -16,7 +16,7 @@ def check_db():
     cur.execute('SELECT * FROM speakers')
     speakers = cur.fetchall()
     for speaker in speakers:
-        print(f"ID: {speaker['id']}, Speaker ID: {speaker['speaker_id']}, Name: {speaker['name']}, Is User: {speaker['is_user']}")
+        print(f"ID: {speaker['id']}, Name: {speaker['name']}, Created: {speaker['created_at']}")
     
     print("\n=== Raw Segments ===")
     cur.execute('''
