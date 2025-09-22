@@ -30,11 +30,19 @@ pip install -r requirements.txt
 # Set up environment variables
 echo "OPENAI_API_KEY=your_api_key_here" > .env
 
+# Navigate to examples directory
+cd examples
+
 # Initialize database
 python init_db.py
 ```
 
 ### Running the Complete Demo
+
+First, navigate to the examples directory:
+```bash
+cd examples
+```
 
 #### Terminal 1: Start Data Ingestion
 ```bash
@@ -56,7 +64,7 @@ python omi_webhook.py
 
 ## Demo Data Analysis
 
-### Sample Data Structure (`raw_data_log.json`)
+### Sample Data Structure (`examples/raw_data_log.json`)
 The demo uses a 10-minute conversation with 4 speakers discussing technical topics:
 
 ```json

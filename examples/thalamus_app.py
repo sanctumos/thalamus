@@ -58,7 +58,9 @@ def process_event(event):
 def main():
     try:
         # Read events from file line by line
-        with open('raw_data_log.json', 'r') as f:
+        import os
+        data_file = os.path.join(os.path.dirname(__file__), 'raw_data_log.json')
+        with open(data_file, 'r') as f:
             last_timestamp = None
             for line in f:
                 event = json.loads(line)

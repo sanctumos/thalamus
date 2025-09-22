@@ -95,7 +95,7 @@ Here's how to enhance the webhook to integrate with Thalamus:
 
 ```python
 from flask import Flask, request, jsonify
-from database import get_or_create_session, get_or_create_speaker, insert_segment
+from examples.database import get_or_create_session, get_or_create_speaker, insert_segment
 from datetime import datetime
 import logging
 
@@ -176,6 +176,7 @@ if __name__ == "__main__":
 
 ### 1. Start the Webhook Server
 ```bash
+cd examples
 python omi_webhook.py
 ```
 
@@ -377,7 +378,7 @@ def health_check():
     """Comprehensive health check."""
     try:
         # Check database connection
-        from database import get_db
+        from examples.database import get_db
         with get_db() as conn:
             conn.execute("SELECT 1")
         

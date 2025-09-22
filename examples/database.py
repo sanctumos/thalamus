@@ -5,7 +5,8 @@ import json
 from typing import List, Dict, Optional
 import logging
 
-DB_PATH = 'thalamus.db'
+import os
+DB_PATH = os.path.join(os.path.dirname(__file__), 'thalamus.db')
 logger = logging.getLogger(__name__)
 
 @contextmanager

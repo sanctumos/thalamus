@@ -1,6 +1,7 @@
 import json
 import time
 import logging
+import os
 from datetime import datetime
 from database import (
     get_unrefined_segments, insert_refined_segment,
@@ -18,7 +19,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler('transcript_refiner.log'),
+        logging.FileHandler(os.path.join(os.path.dirname(__file__), 'transcript_refiner.log')),
         logging.StreamHandler()
     ]
 )
