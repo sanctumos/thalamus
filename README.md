@@ -112,6 +112,10 @@ Refined segments are lightly annotated with topics, tags, or intent markers. The
 
 This separation ensures latency remains low while preserving structured, auditable data for deeper cognition.
 
+![Thalamus ingestion and refinement flow](docs/assets/thalamus-cerebellum-diagram.png)
+
+*Figure 2: Thalamus ingestion and refinement flow. Raw sensory segments are stored immediately, queued, evaluated, and either escalated to Cerebellum for reflex processing or archived/tagged for later use.*
+
 **Figure 1 (placeholder):** *System routing and storage tiers.* Cochlea → Thalamus (ingestion queue + refinement) → **either** Cerebellum (reflex path) → Prime Agent **or** Broca (digital routing) → Prime Agent. Storage tiers shown: Thalamus DB (sensory buffer), Queue DB (ingest/escalation pacing), Cerebellum Storage (agent state).
 
 ---
