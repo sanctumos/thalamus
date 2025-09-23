@@ -534,5 +534,5 @@ Thalamus demonstrates how parallel refinement, flow control, and explicit escala
 - **AGPL-3.0** ensures that any derivative works or network services using this code must also be open source
 - **CC BY-SA 4.0** allows sharing and adaptation of the documentation with proper attribution and share-alike terms
 
-For full license terms, see the [LICENSE](LICENSE) file for code licensing and the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) page for documentation licensing.
+For full license terms, see the [LICENSE](LICENSE) file for code licensing and the [LICENSE-DOCS](LICENSE-DOCS) file for documentation licensing.
 
