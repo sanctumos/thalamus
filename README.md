@@ -112,11 +112,13 @@ Refined segments are lightly annotated with topics, tags, or intent markers. The
 
 This separation ensures latency remains low while preserving structured, auditable data for deeper cognition.
 
+![Thalamus system routing and storage tiers](docs/assets/thalamus-fig-1.png)
+
+*Figure 1: System routing and storage tiers.* Raw input flows through Thalamus processing, then to Cerebellum for reflex handling, and finally to storage tiers for persistence and retrieval.
+
 ![Thalamus ingestion and refinement flow](docs/assets/thalamus-cerebellum-diagram.png)
 
 *Figure 2: Thalamus ingestion and refinement flow. Raw sensory segments are stored immediately, queued, evaluated, and either escalated to Cerebellum for reflex processing or archived/tagged for later use.*
-
-**Figure 1 (placeholder):** *System routing and storage tiers.* Cochlea → Thalamus (ingestion queue + refinement) → **either** Cerebellum (reflex path) → Prime Agent **or** Broca (digital routing) → Prime Agent. Storage tiers shown: Thalamus DB (sensory buffer), Queue DB (ingest/escalation pacing), Cerebellum Storage (agent state).
 
 ---
 
@@ -374,7 +376,7 @@ def omi_webhook():
 |---|---|---|
 | `"uh testing testing"` (SPEAKER_0, 0.0–2.74s) | `"Testing. Testing."` (SPEAKER_0, 0.0–2.74s) | filler dropped, punctuation repaired |
 
-*Figure 1: Example raw vs. refined transcript segment.*
+*Figure 3: Example raw vs. refined transcript segment.*
 
 ### 8.3 Pseudocode for Flow Control and Escalation
 ```text
@@ -424,11 +426,6 @@ cerebellum_worker():
 4. **Privilege escalation attempt** → urgent reflex notice → **critical escalation** → Prime initiates lockdown & forensics, notifies authorities, writes **CRITICAL ALERT** memory block.
 
 **Figure 4 (placeholder):** *Three-pane TUI screenshot with arrows overlaid: highlight→Cerebellum, Cerebellum→Prime (incoming), Prime→Tool/Memory.*
-
----|---|---|
-| `"uh testing testing"` (SPEAKER_0, 0.0–2.74s) | `"Testing. Testing."` (SPEAKER_0, 0.0–2.74s) | filler dropped, punctuation repaired |
-
-*Figure 1: Example raw vs. refined transcript segment.*
 
 ### 8.3 Pseudocode for Flow Control and Escalation
 ```text
@@ -506,13 +503,22 @@ Thalamus demonstrates how parallel refinement, flow control, and explicit escala
 ---
 
 ## References
-[1] Omi Project. *Open Source Streaming STT & Webhook Patterns.*  
-[2] Letta Framework. *Agentic AI Middleware, Memory & Summarization.*  
-[3] Sanctum Architecture Notes. *Broca, Cerebellum, Thalamus Design.*  
-[4] LiveKit. *Real-Time Media Transport for Conversational AI.*  
-[5] JSON Schema (2020-12). *A Vocabulary for Structural Validation of JSON.*  
-[6] Hopkins, M. A., & Casaretto, J. (2025). *System and Method for Adaptive Agent-Based Cybersecurity Enforcement and Retrospective Forensic Analysis.* Provisional Patent Application.  
-[7] Sanctum Thalamus Notes. *Parallel Refinement, Flow Control, and Escalation.*  
-[8] Sanctum Broca Notes. *Digital-to-Digital Routing and Message Governance.*  
-[9] Cochlea v0.1 Schema. *Compatibility Contract for Perception→Thalamus Events.*
+
+[1] Omi Project. *Open Source Streaming STT & Webhook Patterns.* Available at: [https://github.com/openai/omi](https://github.com/openai/omi)
+
+[2] Letta Framework. *Agentic AI Middleware, Memory & Summarization.* Available at: [https://docs.letta.com](https://docs.letta.com)
+
+[3] Sanctum Architecture Notes. *Broca, Cerebellum, Thalamus Design.* Internal documentation.
+
+[4] LiveKit. *Real-Time Media Transport for Conversational AI.* Available at: [https://livekit.io](https://livekit.io)
+
+[5] JSON Schema (2020-12). *A Vocabulary for Structural Validation of JSON.* Available at: [https://json-schema.org/specification-links.html#2020-12](https://json-schema.org/specification-links.html#2020-12)
+
+[6] Hopkins, M. A., & Casaretto, J. (2025). *System and Method for Adaptive Agent-Based Cybersecurity Enforcement and Retrospective Forensic Analysis.* Provisional Patent Application (unpublished).
+
+[7] Sanctum Thalamus Notes. *Parallel Refinement, Flow Control, and Escalation.* Internal documentation.
+
+[8] Sanctum Broca Notes. *Digital-to-Digital Routing and Message Governance.* Internal documentation.
+
+[9] Cochlea v0.1 Schema. *Compatibility Contract for Perception→Thalamus Events.* Available at: [https://github.com/sanctumos/cochlea](https://github.com/sanctumos/cochlea)
 
