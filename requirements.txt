@@ -1,0 +1,33 @@
+# Core web framework
+flask==3.0.0
+
+# Environment management
+python-dotenv==1.0.0
+
+# AI/ML integration
+openai==1.3.0
+
+# Database ORM (for advanced features)
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# HTTP requests
+requests>=2.31.0
+
+# TUI framework for Forensiq demo
+textual>=0.44.0
+rich>=13.0.0
+
+# Standard library dependencies (included with Python)
+# - sqlite3
+# - json
+# - time
+# - logging
+# - os
+# - datetime
+# - contextlib
+# - typing
+# - re
+# - random
+# - asyncio
+# - argparse

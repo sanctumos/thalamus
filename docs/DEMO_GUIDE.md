@@ -6,17 +6,23 @@ This guide explains how to run, improve, and observe the Thalamus demos. The sys
 
 ## Demo Components
 
-### 1. Data Ingestion Demo (`thalamus_app.py`)
+### 1. Forensiq Demo (`examples/forensiq_demo/main.py`)
+- **Purpose**: Interactive TUI demonstration of the cognitive architecture
+- **Features**: Real-time visualization of Thalamus, Cerebellum, and Prime Agent
+- **Interface**: Textual TUI with multiple panes showing data flow
+- **Requirements**: `textual` and `rich` packages
+
+### 2. Data Ingestion Demo (`thalamus_app.py`)
 - **Purpose**: Simulates real-time speech-to-text data processing
 - **Data Source**: `raw_data_log.json` (pre-recorded conversation)
 - **Features**: Timestamp-based delays, session management, speaker tracking
 
-### 2. Transcript Refinement Demo (`transcript_refiner.py`)
+### 3. Transcript Refinement Demo (`transcript_refiner.py`)
 - **Purpose**: AI-powered transcript enhancement
 - **Features**: Speaker grouping, context awareness, OpenAI integration
 - **Output**: Refined, readable transcripts
 
-### 3. Webhook Demo (`omi_webhook.py`)
+### 4. Webhook Demo (`omi_webhook.py`)
 - **Purpose**: Real-time webhook endpoint for live data
 - **Features**: REST API, data validation, error handling
 
@@ -37,26 +43,36 @@ cd examples
 python init_db.py
 ```
 
-### Running the Complete Demo
+### Running the Demos
+
+#### Forensiq Demo (Recommended - Interactive TUI)
+```bash
+cd examples/forensiq_demo
+pip install -r requirements.txt
+python main.py
+```
+**What happens**: Interactive TUI showing the cognitive architecture in action
+
+#### Complete System Demo (Multiple Terminals)
 
 First, navigate to the examples directory:
 ```bash
 cd examples
 ```
 
-#### Terminal 1: Start Data Ingestion
+##### Terminal 1: Start Data Ingestion
 ```bash
 python thalamus_app.py
 ```
 **What happens**: Reads `raw_data_log.json` and processes events with real-time delays
 
-#### Terminal 2: Start Transcript Refiner
+##### Terminal 2: Start Transcript Refiner
 ```bash
 python transcript_refiner.py
 ```
 **What happens**: Continuously processes unrefined segments and creates enhanced transcripts
 
-#### Terminal 3: Start Webhook Server (Optional)
+##### Terminal 3: Start Webhook Server (Optional)
 ```bash
 python omi_webhook.py
 ```
