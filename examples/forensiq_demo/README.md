@@ -1,5 +1,7 @@
 # Forensiq Demo - Cognitive UI
 
+*This documentation is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0).*
+
 This is the Forensiq demo referenced in the Thalamus whitepaper. It demonstrates a textual TUI (Terminal User Interface) representing cognitive AI layers.
 
 ## Overview

@@ -1,6 +1,6 @@
 # Thalamus: Parallel Refinement and Flow Control for Real-Time Agentic Cognition
 
-**Authors:** Mark “Rizzn” Hopkins — Principal Engineer — guesswho@rizzn.com, SanctumOS · Athena Vernal — Research Lead — athena@rizzn.com, SanctumOS · John Casaretto — Co‑Founder, BlackCert — john@blackcert.com
+**Authors:** Mark “Rizzn” Hopkins — Principal Engineer — mark@rizzn.com, SanctumOS · Athena Vernal — Research Lead — athena@rizzn.com, SanctumOS · John Casaretto — Co‑Founder, BlackCert — john@blackcert.com
 
 ---
 
@@ -521,4 +521,18 @@ Thalamus demonstrates how parallel refinement, flow control, and explicit escala
 [8] Sanctum Broca Notes. *Digital-to-Digital Routing and Message Governance.* Internal documentation.
 
 [9] Cochlea v0.1 Schema. *Compatibility Contract for Perception→Thalamus Events.* Available at: [https://github.com/sanctumos/cochlea](https://github.com/sanctumos/cochlea)
+
+---
+
+## License
+
+**Code**: All software code in this repository is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
+
+**Documentation**: All documentation, whitepapers, and non-code content is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0).
+
+### Summary
+- **AGPL-3.0** ensures that any derivative works or network services using this code must also be open source
+- **CC BY-SA 4.0** allows sharing and adaptation of the documentation with proper attribution and share-alike terms
+
+For full license terms, see the [LICENSE](LICENSE) file for code licensing and the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) page for documentation licensing.
 

@@ -1,3 +1,8 @@
+# Thalamus Requirements
+# Copyright (C) 2025 Mark "Rizzn" Hopkins, Athena Vernal, John Casaretto
+# Licensed under GNU Affero General Public License v3.0
+# See LICENSE file for full license terms
+
 # Core web framework
 flask==3.0.0
 

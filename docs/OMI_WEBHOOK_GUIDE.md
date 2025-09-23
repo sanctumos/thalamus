@@ -1,5 +1,7 @@
 # Omi Webhook Integration Guide
 
+*This documentation is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0).*
+
 ## Overview
 
 This guide explains how to integrate and work with Omi webhooks in the Thalamus system. The Omi webhook provides a real-time interface for receiving speech-to-text data that can be processed by the Thalamus transcript refinement system.

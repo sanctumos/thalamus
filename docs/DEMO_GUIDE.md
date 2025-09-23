@@ -1,5 +1,7 @@
 # Thalamus Demo Guide
 
+*This documentation is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0).*
+
 ## Overview
 
 This guide explains how to run, improve, and observe the Thalamus demos. The system includes several demo components that showcase the real-time transcript refinement capabilities.

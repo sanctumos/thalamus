@@ -1,5 +1,7 @@
 # Thalamus Technical Reference
 
+*This documentation is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0).*
+
 This document provides technical implementation details for the Thalamus system.
 
 ## Database Schema
