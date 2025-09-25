@@ -22,7 +22,7 @@ import json
 import time
 import logging
 from datetime import datetime, UTC
-from database import get_or_create_session, get_or_create_speaker, insert_segment
+from database import init_db, get_or_create_session, get_or_create_speaker, insert_segment
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -77,6 +77,11 @@ def process_event(event):
 
 def main():
     try:
+        # Initialize database first
+        logger.info("Initializing database...")
+        init_db()
+        logger.info("Database initialized successfully")
+        
         # Read events from file line by line
         import os
         data_file = os.path.join(os.path.dirname(__file__), 'raw_data_log.json')
