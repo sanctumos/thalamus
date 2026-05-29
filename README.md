@@ -42,7 +42,7 @@ The demo showcases the cognitive architecture described in this paper through a 
 - **Reflex Processing**: Cerebellum's quick response capabilities
 - **Deep Cognition**: Prime Agent's higher-order processing
 
-For more details, see the [Forensiq Demo README](examples/forensiq_demo/README.md).
+For more details, see the [Forensiq Demo README](examples/forensiq_demo/README.md) — includes **screen captures** (MP4 + PNG stills under `examples/forensiq_demo/captures/` for both default and `--scenario mitm` runs).
 
 ## Repository Structure
 
@@ -54,6 +54,7 @@ thalamus/
 ├── examples/                    # Reference implementations
 │   ├── forensiq_demo/          # Interactive TUI demo (main.py)
 │   │   ├── main.py             # Forensiq cognitive UI demo
+│   │   ├── captures/           # Screen recordings + stills (forensiq + mitm)
 │   │   ├── requirements.txt    # Demo dependencies
 │   │   └── README.md           # Demo documentation
 │   ├── thalamus_app.py         # Data ingestion application

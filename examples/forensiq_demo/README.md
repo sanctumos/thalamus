@@ -4,6 +4,37 @@
 
 This is the Forensiq demo referenced in the Thalamus whitepaper. It demonstrates a textual TUI (Terminal User Interface) representing cognitive AI layers.
 
+## Screen captures
+
+Recorded demos live in **`captures/`** in this folder (also mirrored on [GitHub Releases](https://github.com/sanctumos/thalamus/releases)).
+
+### Default scenario (`--scenario forensiq`)
+
+**Video:** [captures/forensiq/forensiq-demo.mp4](captures/forensiq/forensiq-demo.mp4) (~90s · 240×56 terminal)
+
+| Frame | Caption |
+|-------|---------|
+| ![SSH MOTD intro](captures/forensiq/01-motd.png) | SSH login + MOTD |
+| ![Four-pane layout](captures/forensiq/02-incident-start.png) | First HR incident / four-pane layout |
+| ![Brute force](captures/forensiq/03-brute-force.png) | Brute force + SECURITY INCIDENT memory |
+| ![Prime escalation](captures/forensiq/04-escalation.png) | Prime escalation + tool actions |
+| ![Critical alert](captures/forensiq/05-critical-alert.png) | CRITICAL ALERT memory block |
+
+Release tag: [`forensiq-demo-1.0`](https://github.com/sanctumos/thalamus/releases/tag/forensiq-demo-1.0)
+
+### MITM scenario (`--scenario mitm`)
+
+**Video:** [captures/mitm/forensiq-mitm-latest.mp4](captures/mitm/forensiq-mitm-latest.mp4) (~95s · hospital token-abuse narrative)
+
+| Frame | Caption |
+|-------|---------|
+| ![Denver sign-in](captures/mitm/01-token-denver.png) | Denver sign-in, token reuse warning |
+| ![Token abuse memory](captures/mitm/02-token-abuse-memory.png) | TOKEN ABUSE INDICATOR memory block |
+| ![IAM changes](captures/mitm/03-iam-change.png) | Privileged-Ops + Global Admin signals |
+| ![MITM critical alert](captures/mitm/04-critical-mitm.png) | **CRITICAL ALERT: POTENTIAL MAN-IN-THE-MIDDLE** |
+
+Release tag: [`forensiq-demo-mitm-1.0`](https://github.com/sanctumos/thalamus/releases/tag/forensiq-demo-mitm-1.0)
+
 ## Overview
 
 The Forensiq demo showcases the cognitive architecture described in the Thalamus whitepaper through an interactive terminal interface. It simulates the flow of information through different cognitive layers including:
