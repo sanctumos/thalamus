@@ -21,17 +21,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 import asyncio
+import os
 from datetime import datetime
 from typing import Dict, List, Optional
 import re
 import random
+import textwrap
 import time
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Static, RichLog, Input
 from textual.screen import Screen
-from textual.scroll_view import ScrollView
 from textual.reactive import reactive
 from textual.timer import Timer
 from textual.message import Message
@@ -45,6 +46,10 @@ TEST_MODE = False
 AUTO_CLOSE = False
 DEBUG_VISUAL = False
 SCREENSHOT_MODE = False
+SCENARIO = "forensiq"
+
+# Memory pane: wrap inside bordered column (240 terminal / 3 columns minus border+padding).
+MEMORY_WRAP_WIDTH = 68
 
 class SSHLoginSimulator:
     """Handles the fake SSH login sequence with MOTD"""
@@ -113,10 +118,17 @@ class SSHLoginScreen(Screen):
         self.typing_timer = None
         self.current_typing_line = ""
         self.typing_index = 0
+        self._ssh_partial = ""
         
     def compose(self) -> ComposeResult:
         yield Container(
-            Static("", id="ssh-output"),
+            RichLog(
+                id="ssh-output",
+                highlight=False,
+                markup=False,
+                wrap=True,
+                auto_scroll=True,
+            ),
             Input(placeholder="", id="ssh-input", disabled=True),
             id="ssh-container"
         )
@@ -126,8 +138,9 @@ class SSHLoginScreen(Screen):
         self.styles.background = "black"
         self.query_one("#ssh-container").styles.height = "100%"
         self.query_one("#ssh-container").styles.width = "100%"
-        self.query_one("#ssh-output").styles.color = "green"
-        self.query_one("#ssh-output").styles.background = "black"
+        ssh_output = self.query_one("#ssh-output", RichLog)
+        ssh_output.styles.color = "green"
+        ssh_output.styles.background = "black"
         self.query_one("#ssh-input").styles.background = "black"
         self.query_one("#ssh-input").styles.color = "green"
         
@@ -254,16 +267,130 @@ class SSHLoginScreen(Screen):
         self.set_timer(1.5, self.ssh_simulator.complete_login)
     
     def add_line(self, text, newline=True):
-        """Add a line to the SSH output"""
-        output = self.query_one("#ssh-output")
-        current_text = str(output.renderable) if hasattr(output, 'renderable') and output.renderable else ""
-        
-        if newline:
-            new_text = current_text + text + "\n" if current_text else text + "\n"
-        else:
-            new_text = current_text + text if current_text else text
-        
-        output.update(new_text)
+        """Append a line to the SSH RichLog (Static collapsed MOTD to one row)."""
+        output = self.query_one("#ssh-output", RichLog)
+        if not newline:
+            self._ssh_partial += text
+            return
+        output.write(self._ssh_partial + text)
+        self._ssh_partial = ""
+
+def _timeline_shared_prefix() -> List[Dict]:
+    """Opening incidents and false-positive refusals (both scenarios)."""
+    return [
+        {"type": "console", "level": "INFO", "message": "System initialization complete", "process": "CORE"},
+        {"type": "console", "level": "INFO", "message": "Loading cognitive modules...", "process": "INIT"},
+        {"type": "console", "level": "INFO", "message": "Thalamus input stream: ACTIVE", "process": "THAL"},
+        {"type": "console", "level": "WARN", "message": "Unusual file access pattern detected", "process": "MON", "highlight": True},
+        {"type": "console", "level": "INFO", "message": "HR directory accessed outside business hours", "process": "FS", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Unusual file access pattern detected"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Flagging after-hours HR access - pattern analysis required"},
+        {"type": "escalation", "message": "Potential data exfiltration attempt detected - requesting analysis"},
+        {"type": "prime_response", "message": "Analyzing access patterns and user behavior history"},
+        {"type": "prime_tool", "action": "flag_investigation", "message": "Flagging incident for security team investigation - user john.doe@company.com"},
+        {"type": "prime_tool", "action": "create_memory_block", "message": "Analysis complete. This incident requires documentation."},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating incident report: SECURITY INCIDENT"},
+        {"type": "memory", "data": {
+            "title": "SECURITY INCIDENT",
+            "content": "After-hours access to HR directory detected. User: john.doe@company.com. Files accessed: employee_records.xlsx, salary_data.csv. Time: 23:47 UTC. Flagged for investigation."
+        }},
+        {"type": "console", "level": "WARN", "message": "Network traffic spike detected", "process": "NET", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Network traffic spike detected - potential DDoS"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Analyzing traffic patterns... scheduled backup sync. Dismissing alert."},
+        {"type": "console", "level": "WARN", "message": "Elevated file system activity", "process": "FS", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Elevated file system activity - potential data exfiltration"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Cross-referencing with maintenance window... automated log rotation. False positive."},
+        {"type": "console", "level": "WARN", "message": "Unusual authentication pattern", "process": "AUTH", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Unusual authentication pattern detected"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Checking user context... legitimate mobile app sync. No threat detected."},
+    ]
+
+
+def _timeline_forensiq_late() -> List[Dict]:
+    """Default security demo: brute force + active breach."""
+    return [
+        {"type": "console", "level": "WARN", "message": "Multiple failed login attempts", "process": "AUTH", "highlight": True},
+        {"type": "console", "level": "ERROR", "message": "Brute force attack detected from IP 192.168.1.157", "process": "SEC", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Brute force attack detected from IP 192.168.1.157"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Blocking suspicious IP immediately - auto-defense engaged"},
+        {"type": "escalation", "message": "Coordinated attack pattern identified - multiple vectors detected"},
+        {"type": "prime_response", "message": "Cross-referencing with threat intelligence databases"},
+        {"type": "inter_agent", "sender": "Prime", "message": "Request additional network logs from past hour"},
+        {"type": "inter_agent", "sender": "Cerebellum", "message": "Retrieving network activity logs - 847 events found"},
+        {"type": "prime_tool", "action": "block_ip", "message": "Blocking source IP 192.168.1.157 across all network segments"},
+        {"type": "prime_tool", "action": "create_memory_block", "message": "Threat analysis complete. Documenting attack pattern."},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating incident report: BRUTE FORCE ATTEMPT"},
+        {"type": "memory", "data": {
+            "title": "BRUTE FORCE ATTEMPT",
+            "content": "Coordinated brute force attack detected. Source IP: 192.168.1.157. Target accounts: admin, root, service. Attack duration: 4 minutes. Status: BLOCKED."
+        }},
+        {"type": "console", "level": "WARN", "message": "Administrative command executed", "process": "PRIV", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Administrative command executed outside normal hours"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Verifying user credentials... authorized system administrator. Legitimate action."},
+        {"type": "console", "level": "WARN", "message": "Large data transfer initiated", "process": "NET", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Large data transfer initiated - potential exfiltration"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Checking destination... approved cloud backup provider. Normal operations."},
+        {"type": "console", "level": "CRITICAL", "message": "Privilege escalation attempt detected", "process": "PRIV", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Privilege escalation attempt detected"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "URGENT: Root access attempt via exploit - immediate containment"},
+        {"type": "escalation", "message": "Critical security breach in progress - root compromise attempt"},
+        {"type": "prime_response", "message": "Initiating lockdown protocols and forensic capture"},
+        {"type": "prime_tool", "action": "system_lockdown", "message": "Initiating emergency system lockdown - all non-essential services stopped"},
+        {"type": "prime_tool", "action": "capture_forensics", "message": "Starting forensic data capture from production server"},
+        {"type": "prime_tool", "action": "notify_authorities", "message": "Contacting law enforcement - security breach notification sent"},
+        {"type": "prime_tool", "action": "create_memory_block", "message": "CRITICAL BREACH: Immediate documentation required."},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating critical alert: ACTIVE BREACH"},
+        {"type": "memory", "data": {
+            "title": "CRITICAL ALERT",
+            "content": "ACTIVE BREACH: Privilege escalation exploit detected. Attack vector: CVE-2024-1337. Target: production server. Response: System lockdown initiated. Law enforcement notified."
+        }},
+    ]
+
+
+def _timeline_mitm_late() -> List[Dict]:
+    """Hospital MITM / token-abuse narrative (AuthLokr interim demo)."""
+    return [
+        {"type": "console", "level": "INFO", "message": "Sign-in success: donnie.reed@uho.org from Denver, CO (WIN-LAPTOP-HR01)", "process": "AUTH", "highlight": True},
+        {"type": "console", "level": "WARN", "message": "Refresh token reuse: same session ID on second device", "process": "AUTH", "highlight": True},
+        {"type": "console", "level": "ERROR", "message": "Same token used from Toledo, OH 4 min later (Unknown-Android)", "process": "AUTH", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Concurrent session anomaly — refresh token reused across geographies"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Impossible travel: Denver → Toledo in 4 min — no flight window"},
+        {"type": "escalation", "message": "Token abuse pattern — potential session hijack / MITM"},
+        {"type": "prime_response", "message": "Correlating Entra sign-in logs, device compliance, and token fingerprint"},
+        {"type": "inter_agent", "sender": "Prime", "message": "Pull last 30 min auth events for donnie.reed@uho.org"},
+        {"type": "inter_agent", "sender": "Cerebellum", "message": "Retrieved 12 auth events — 2 active refresh tokens, 2 countries"},
+        {"type": "prime_tool", "action": "flag_investigation", "message": "Flagging donnie.reed@uho.org for immediate session review"},
+        {"type": "prime_tool", "action": "create_memory_block", "message": "Token abuse indicators documented for security team."},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating incident report: TOKEN ABUSE INDICATOR"},
+        {"type": "memory", "data": {
+            "title": "TOKEN ABUSE INDICATOR",
+            "content": "User donnie.reed@uho.org authenticated Denver, CO then same refresh token used Toledo, OH 4 minutes later. Device mismatch: WIN-LAPTOP-HR01 vs Unknown-Android. Impossible geo velocity — investigate session hijack / MITM."
+        }},
+        {"type": "console", "level": "WARN", "message": "VPN endpoint change detected", "process": "VPN", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "VPN endpoint change — potential tunnel hijack"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Matches change ticket CHG-4421 — planned maintenance. Dismissing."},
+        {"type": "console", "level": "WARN", "message": "Group membership added: Privileged-Ops for donnie.reed@uho.org", "process": "IAM", "highlight": True},
+        {"type": "console", "level": "CRITICAL", "message": "Global Administrator role assigned outside change window", "process": "IAM", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Privileged group + Global Admin role change on flagged account"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "URGENT: Account modification follows token abuse — likely active MITM"},
+        {"type": "escalation", "message": "Critical: privileged account takeover pattern — MITM escalation"},
+        {"type": "prime_response", "message": "Revoking active sessions and opening incident bridge"},
+        {"type": "prime_tool", "action": "revoke_sessions", "message": "Revoking all refresh tokens for donnie.reed@uho.org"},
+        {"type": "prime_tool", "action": "block_ip", "message": "Blocking Toledo endpoint 198.51.100.44 pending investigation"},
+        {"type": "prime_tool", "action": "create_memory_block", "message": "CRITICAL: MITM pattern complete — document for hospital SOC."},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating critical alert: POTENTIAL MAN-IN-THE-MIDDLE"},
+        {"type": "memory", "data": {
+            "title": "CRITICAL ALERT",
+            "content": "POTENTIAL MAN-IN-THE-MIDDLE: Session token reused Denver CO → Toledo OH (4 min). Post-auth changes: Privileged-Ops group + Global Administrator role on donnie.reed@uho.org. Recommend immediate session revoke, credential rotation, and SOC review."
+        }},
+    ]
+
+
+def build_timeline(scenario: str) -> List[Dict]:
+    if scenario == "mitm":
+        return _timeline_shared_prefix() + _timeline_mitm_late()
+    return _timeline_shared_prefix() + _timeline_forensiq_late()
+
 
 class EventEngine:
     """Manages the demo timeline and events"""
@@ -321,93 +448,7 @@ class EventEngine:
             {"type": "console", "level": "DEBUG", "message": "Thread pool utilization: 76% avg", "process": "THREAD"},
         ]
 
-        # Demo timeline following script rules (incidents and cognitive responses)
-        self.timeline = [
-            # Initial system startup
-            {"type": "console", "level": "INFO", "message": "System initialization complete", "process": "CORE"},
-            {"type": "console", "level": "INFO", "message": "Loading cognitive modules...", "process": "INIT"},
-            {"type": "console", "level": "INFO", "message": "Thalamus input stream: ACTIVE", "process": "THAL"},
-            
-            # First incident - Thalamus → Cerebellum (internal reflex only)
-            {"type": "console", "level": "WARN", "message": "Unusual file access pattern detected", "process": "MON", "highlight": True},
-            {"type": "console", "level": "INFO", "message": "HR directory accessed outside business hours", "process": "FS", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Unusual file access pattern detected"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Flagging after-hours HR access - pattern analysis required"},
-            
-            # Cerebellum escalates to Prime (appears in both windows)
-            {"type": "escalation", "message": "Potential data exfiltration attempt detected - requesting analysis"},
-            {"type": "prime_response", "message": "Analyzing access patterns and user behavior history"},
-            {"type": "prime_tool", "action": "flag_investigation", "message": "Flagging incident for security team investigation - user john.doe@company.com"},
-            {"type": "prime_tool", "action": "create_memory_block", "message": "Analysis complete. This incident requires documentation."},
-            {"type": "prime_tool", "action": "write_block", "message": "Creating incident report: SECURITY INCIDENT"},
-            {"type": "memory", "data": {
-                "title": "SECURITY INCIDENT",
-                "content": "After-hours access to HR directory detected. User: john.doe@company.com. Files accessed: employee_records.xlsx, salary_data.csv. Time: 23:47 UTC. Flagged for investigation."
-            }},
-            
-            # First refusal - False positive network anomaly
-            {"type": "console", "level": "WARN", "message": "Network traffic spike detected", "process": "NET", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Network traffic spike detected - potential DDoS"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Analyzing traffic patterns... scheduled backup sync. Dismissing alert."},
-            
-            # Second refusal - False positive file access
-            {"type": "console", "level": "WARN", "message": "Elevated file system activity", "process": "FS", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Elevated file system activity - potential data exfiltration"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Cross-referencing with maintenance window... automated log rotation. False positive."},
-            
-            # Third refusal - False positive authentication
-            {"type": "console", "level": "WARN", "message": "Unusual authentication pattern", "process": "AUTH", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Unusual authentication pattern detected"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Checking user context... legitimate mobile app sync. No threat detected."},
-
-            # Second incident - brute force attack
-            {"type": "console", "level": "WARN", "message": "Multiple failed login attempts", "process": "AUTH", "highlight": True},
-            {"type": "console", "level": "ERROR", "message": "Brute force attack detected from IP 192.168.1.157", "process": "SEC", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Brute force attack detected from IP 192.168.1.157"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Blocking suspicious IP immediately - auto-defense engaged"},
-            
-            # Cerebellum escalates coordinated attack to Prime
-            {"type": "escalation", "message": "Coordinated attack pattern identified - multiple vectors detected"},
-            {"type": "prime_response", "message": "Cross-referencing with threat intelligence databases"},
-            {"type": "inter_agent", "sender": "Prime", "message": "Request additional network logs from past hour"},
-            {"type": "inter_agent", "sender": "Cerebellum", "message": "Retrieving network activity logs - 847 events found"},
-            {"type": "prime_tool", "action": "block_ip", "message": "Blocking source IP 192.168.1.157 across all network segments"},
-            {"type": "prime_tool", "action": "create_memory_block", "message": "Threat analysis complete. Documenting attack pattern."},
-            {"type": "prime_tool", "action": "write_block", "message": "Creating incident report: BRUTE FORCE ATTEMPT"},
-            {"type": "memory", "data": {
-                "title": "BRUTE FORCE ATTEMPT",
-                "content": "Coordinated brute force attack detected. Source IP: 192.168.1.157. Target accounts: admin, root, service. Attack duration: 4 minutes. Status: BLOCKED."
-            }},
-            
-            # Fourth refusal - False positive privilege escalation
-            {"type": "console", "level": "WARN", "message": "Administrative command executed", "process": "PRIV", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Administrative command executed outside normal hours"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Verifying user credentials... authorized system administrator. Legitimate action."},
-            
-            # Fifth refusal - False positive data transfer
-            {"type": "console", "level": "WARN", "message": "Large data transfer initiated", "process": "NET", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Large data transfer initiated - potential exfiltration"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Checking destination... approved cloud backup provider. Normal operations."},
-
-            # Final critical escalation
-            {"type": "console", "level": "CRITICAL", "message": "Privilege escalation attempt detected", "process": "PRIV", "highlight": True},
-            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Privilege escalation attempt detected"},
-            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "URGENT: Root access attempt via exploit - immediate containment"},
-            
-            # Critical escalation to Prime
-            {"type": "escalation", "message": "Critical security breach in progress - root compromise attempt"},
-            {"type": "prime_response", "message": "Initiating lockdown protocols and forensic capture"},
-            {"type": "prime_tool", "action": "system_lockdown", "message": "Initiating emergency system lockdown - all non-essential services stopped"},
-            {"type": "prime_tool", "action": "capture_forensics", "message": "Starting forensic data capture from production server"},
-            {"type": "prime_tool", "action": "notify_authorities", "message": "Contacting law enforcement - security breach notification sent"},
-            {"type": "prime_tool", "action": "create_memory_block", "message": "CRITICAL BREACH: Immediate documentation required."},
-            {"type": "prime_tool", "action": "write_block", "message": "Creating critical alert: ACTIVE BREACH"},
-            {"type": "memory", "data": {
-                "title": "CRITICAL ALERT",
-                "content": "ACTIVE BREACH: Privilege escalation exploit detected. Attack vector: CVE-2024-1337. Target: production server. Response: System lockdown initiated. Law enforcement notified."
-            }},
-        ]
-    
+        self.timeline = build_timeline(SCENARIO)
     def start_demo(self):
         """Start both the demo timeline and background chatter"""
         if not self.timeline_timer:
@@ -725,88 +766,98 @@ class ChatMessage(Static):
         else:
             return Text(static_part + streaming_part, style="white")
 
-class CerebellumPane(ScrollView):
-    """Top half of left column - Cerebellum (reflex) chat"""
-    
-    def __init__(self):
-        super().__init__(name="cerebellum", id="cerebellum-pane")
-        self.border_title = "CEREBELLUM (REFLEX)"
-        
-    def add_message(self, sender: str, message: str, escalation: Optional[str] = None):
-        """Add a message to the cerebellum chat"""
-        # Determine if this should stream based on sender
-        should_stream = sender != "Thalamus"  # Don't stream Thalamus messages
-        
-        # Main message
-        msg_widget = ChatMessage(sender, message, "bright_green", should_stream)
-        self.mount(msg_widget)
-        
-        # Escalation message (delayed)
-        if escalation:
-            def add_escalation():
-                escalation_widget = ChatMessage("Cerebellum", escalation, "bright_green", True)  # Always stream escalations
-                self.mount(escalation_widget)
-                
-            self.set_timer(1.0, add_escalation)  # 1 second delay
+def format_chat_line(sender: str, message: str, sender_color: str = "white") -> Text:
+  """Format a chat line for RichLog panes (renders reliably in terminal capture)."""
+  timestamp = datetime.now().strftime('%H:%M:%S')
+  line = Text()
+  line.append(f"[{timestamp}] ", style="bright_black")
+  line.append(f"{sender}:", style=f"bold {sender_color}")
+  line.append(f" {message}", style="white")
+  return line
 
-class PrimePane(ScrollView):
-    """Bottom half of left column - Prime Agent (cognition) chat"""
-    
-    def __init__(self):
-        super().__init__(name="prime", id="prime-pane")
-        self.border_title = "PRIME AGENT (COGNITION)"
-        
-    def add_message(self, sender: str, message: str, incoming: Optional[str] = None):
-        """Add a message to the prime chat"""
-        # Incoming escalation (immediate)
-        if incoming:
-            incoming_widget = ChatMessage("Cerebellum", incoming, "bright_green", False)  # Don't stream incoming (instant)
-            self.mount(incoming_widget)
-            
-            # Prime response (delayed)
-            def add_response():
-                response_widget = ChatMessage(sender, message, "bright_cyan", True)  # Stream Prime responses
-                self.mount(response_widget)
-                
-            self.set_timer(1.5, add_response)  # 1.5 second delay
-        else:
-            # Direct message - determine streaming based on sender
-            should_stream = sender != "Thalamus"
-            msg_widget = ChatMessage(sender, message, "bright_cyan", should_stream)
-            self.mount(msg_widget)
 
-class MemoryBlockWidget(Static):
-    """Individual memory block widget"""
-    
-    def __init__(self, data: Dict):
-        super().__init__()
-        self.data = data
-        self.add_class("memory-block")
-        
-    def compose(self) -> ComposeResult:
-        title = self.data.get("title", "MEMORY BLOCK")
-        content = self.data.get("content", "No content available")
-        
-        yield Static(title, classes="memory-title")
-        yield Static(content, classes="memory-content")
+def format_tool_line(action: str, message: str) -> Text:
+  timestamp = datetime.now().strftime('%H:%M:%S')
+  line = Text()
+  line.append(f"[{timestamp}] ", style="bright_black")
+  line.append(f"[Tool: {action}] ", style="bold yellow")
+  line.append(message, style="yellow")
+  return line
 
-class MemoryPane(ScrollView):
-    """Center column - Memory/Core blocks"""
-    
-    def __init__(self):
-        super().__init__(name="memory", id="memory-pane")
-        self.border_title = "MEMORY CORE"
-        self.memory_blocks: List[MemoryBlockWidget] = []
-        
-    def add_memory_block(self, data: Dict):
-        """Add a new memory block"""
-        if TEST_MODE:
-            print(f"[DEBUG] MemoryPane.add_memory_block called with: {data}")
-        block = MemoryBlockWidget(data)
-        self.memory_blocks.insert(0, block)  # Add to top
-        self.mount(block)
-        if TEST_MODE:
-            print(f"[DEBUG] Memory block mounted, total blocks: {len(self.memory_blocks)}")
+
+def memory_wrap_width(app=None) -> int:
+    """Estimate safe wrap width for the center memory column."""
+    if app is not None and getattr(app, "size", None) and app.size.width:
+        per_col = max(app.size.width // 3, 40)
+        return max(per_col - 10, 44)
+    try:
+        cols = int(os.environ.get("COLUMNS", str(MEMORY_WRAP_WIDTH + 8)))
+    except ValueError:
+        cols = MEMORY_WRAP_WIDTH + 8
+    return max(cols // 3 - 10, MEMORY_WRAP_WIDTH)
+
+
+def format_memory_block(data: Dict, wrap_width: Optional[int] = None) -> Text:
+  title = data.get("title", "MEMORY BLOCK")
+  content = data.get("content", "No content available")
+  width = wrap_width if wrap_width is not None else MEMORY_WRAP_WIDTH
+  wrapped_title = textwrap.fill(title, width=width)
+  wrapped_content = textwrap.fill(content, width=width)
+  line = Text()
+  line.append(f"══ {wrapped_title} ══\n", style="bold yellow")
+  line.append(wrapped_content, style="white")
+  line.append("\n", style="white")
+  return line
+
+
+class _ChatPane(RichLog):
+  """Shared RichLog chat pane (ScrollView + dynamic mount does not paint in headless capture)."""
+
+  def __init__(self, name: str, pane_id: str, title: str):
+    super().__init__(
+      name=name,
+      id=pane_id,
+      highlight=True,
+      markup=True,
+      wrap=True,
+      auto_scroll=True,
+    )
+    self.border_title = title
+
+  def write_chat(self, sender: str, message: str, sender_color: str = "white") -> None:
+    self.write(format_chat_line(sender, message, sender_color))
+
+
+class CerebellumPane(_ChatPane):
+  def __init__(self):
+    super().__init__("cerebellum", "cerebellum-pane", "CEREBELLUM (REFLEX)")
+
+
+class PrimePane(_ChatPane):
+  def __init__(self):
+    super().__init__("prime", "prime-pane", "PRIME AGENT (COGNITION)")
+
+  def write_tool(self, action: str, message: str) -> None:
+    self.write(format_tool_line(action, message))
+
+
+class MemoryPane(RichLog):
+  def __init__(self):
+    super().__init__(
+      name="memory",
+      id="memory-pane",
+      highlight=True,
+      markup=True,
+      wrap=True,
+      auto_scroll=True,
+    )
+    self.border_title = "MEMORY CORE"
+
+  def add_memory_block(self, data: Dict):
+    if TEST_MODE:
+      print(f"[DEBUG] MemoryPane.add_memory_block called with: {data}")
+    width = memory_wrap_width(self.app)
+    self.write(format_memory_block(data, wrap_width=width))
 
 class SanctumApp(App):
     """Main Textual application"""
@@ -842,6 +893,7 @@ class SanctumApp(App):
         border: solid $warning;
         border-title-color: $warning;
         border-title-style: bold;
+        padding: 0 1;
     }
     
     #console-pane {
@@ -943,13 +995,8 @@ class SanctumApp(App):
     def on_cerebellum_internal_message(self, message: CerebellumInternalMessage):
         """Handle internal cerebellum messages (Thalamus → Cerebellum only)"""
         cerebellum = self.query_one("#cerebellum-pane", CerebellumPane)
-        
-        # Determine streaming: Thalamus messages are instant, Cerebellum reflexes are instant
-        should_stream = False  # Internal reflexes are instant
         sender_color = "bright_blue" if message.sender == "Thalamus" else "bright_green"
-        
-        msg_widget = ChatMessage(message.sender, message.message, sender_color, should_stream)
-        cerebellum.mount(msg_widget)
+        cerebellum.write_chat(message.sender, message.message, sender_color)
     
     def on_escalation_message(self, message: EscalationMessage):
         """Handle escalation from Cerebellum to Prime (appears in both windows)"""
@@ -957,13 +1004,8 @@ class SanctumApp(App):
         prime = self.query_one("#prime-pane", PrimePane)
         
         def add_escalation():
-            # Add to cerebellum as outgoing (streaming)
-            escalation_widget = ChatMessage("Cerebellum", message.message, "bright_green", True)
-            cerebellum.mount(escalation_widget)
-            
-            # Add to prime as incoming (instant)
-            incoming_widget = ChatMessage("Cerebellum", message.message, "bright_green", False)
-            prime.mount(incoming_widget)
+            cerebellum.write_chat("Cerebellum", message.message, "bright_green")
+            prime.write_chat("Cerebellum", message.message, "bright_green")
             
         self.set_timer(1.0, add_escalation)  # 1 second delay
     
@@ -972,8 +1014,7 @@ class SanctumApp(App):
         prime = self.query_one("#prime-pane", PrimePane)
         
         def add_response():
-            response_widget = ChatMessage("Prime", message.message, "bright_cyan", True)
-            prime.mount(response_widget)
+            prime.write_chat("Prime", message.message, "bright_cyan")
             
         self.set_timer(1.5, add_response)  # 1.5 second delay
     
@@ -983,25 +1024,16 @@ class SanctumApp(App):
         prime = self.query_one("#prime-pane", PrimePane)
         
         if message.sender == "Prime":
-            # Prime asking Cerebellum - show in both windows
-            prime_widget = ChatMessage("Prime", message.message, "bright_cyan", True)
-            cerebellum_widget = ChatMessage("Prime", message.message, "bright_cyan", False)
-            prime.mount(prime_widget)
-            cerebellum.mount(cerebellum_widget)
+            prime.write_chat("Prime", message.message, "bright_cyan")
+            cerebellum.write_chat("Prime", message.message, "bright_cyan")
         else:
-            # Cerebellum responding to Prime - show in both windows
-            cerebellum_widget = ChatMessage("Cerebellum", message.message, "bright_green", True)
-            prime_widget = ChatMessage("Cerebellum", message.message, "bright_green", False)
-            cerebellum.mount(cerebellum_widget)
-            prime.mount(prime_widget)
+            cerebellum.write_chat("Cerebellum", message.message, "bright_green")
+            prime.write_chat("Cerebellum", message.message, "bright_green")
     
     def on_prime_tool_message(self, message: PrimeToolMessage):
         """Handle Prime Agent tool actions"""
         prime = self.query_one("#prime-pane", PrimePane)
-        
-        # Tool actions are instant
-        tool_widget = ToolMessage(message.action, message.message)
-        prime.mount(tool_widget)
+        prime.write_tool(message.action, message.message)
     
     def on_memory_block(self, message: MemoryBlock):
         """Handle memory block creation"""
@@ -1030,13 +1062,19 @@ class SanctumApp(App):
 
 def main():
     """Main entry point"""
-    global TEST_MODE, AUTO_CLOSE, DEBUG_VISUAL, SCREENSHOT_MODE
+    global TEST_MODE, AUTO_CLOSE, DEBUG_VISUAL, SCREENSHOT_MODE, SCENARIO
     
     parser = argparse.ArgumentParser(description="Sanctum Cognitive UI Demo - TUI Version")
     parser.add_argument("--test", action="store_true", help="Run in test mode")
     parser.add_argument("--auto-close", action="store_true", help="Auto-close after demo")
     parser.add_argument("--debug-visual", action="store_true", help="Enable visual debugging")
     parser.add_argument("--screenshot", action="store_true", help="Enable screenshot mode")
+    parser.add_argument(
+        "--scenario",
+        choices=("forensiq", "mitm"),
+        default="forensiq",
+        help="Demo incident script: forensiq (default) or mitm (hospital token-abuse narrative)",
+    )
     
     args = parser.parse_args()
     
@@ -1044,9 +1082,10 @@ def main():
     AUTO_CLOSE = args.auto_close
     DEBUG_VISUAL = args.debug_visual
     SCREENSHOT_MODE = args.screenshot
+    SCENARIO = args.scenario
     
     if TEST_MODE:
-        print(f"[TEST] Starting TUI version with options: test={TEST_MODE}, auto_close={AUTO_CLOSE}")
+        print(f"[TEST] Starting TUI version with options: test={TEST_MODE}, auto_close={AUTO_CLOSE}, scenario={SCENARIO}")
     
     # Run the Textual app
     app = SanctumApp()
