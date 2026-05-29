@@ -32,6 +32,19 @@ pip install textual rich
 python main.py
 ```
 
+### Scenarios
+
+| Flag | Narrative |
+|------|-----------|
+| `--scenario forensiq` (default) | HR incident, brute force, active breach |
+| `--scenario mitm` | Hospital token-abuse / MITM (Denver→Toledo reuse, privileged takeover, **CRITICAL ALERT: POTENTIAL MAN-IN-THE-MIDDLE**) |
+
+```bash
+python main.py --auto-close --scenario mitm
+```
+
+For screen capture, use a wide terminal (`COLUMNS=240 LINES=56`) and extend the auto-close timer if needed (upstream default is 25s; full timeline needs ~90s).
+
 ## Architecture
 
 The demo implements the cognitive architecture described in the Thalamus whitepaper:
