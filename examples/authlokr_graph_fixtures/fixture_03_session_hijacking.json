@@ -1,0 +1,178 @@
+{
+  "scenario": "Session Hijacking - Mid-Session IP Change",
+  "description": "Active session for austin.ivaska starts in Denver. Same sessionId continues from Shanghai 6 minutes later - mid-session IP change indicating session token theft. AuthLokr monitors in real-time and terminates session. P2 would not catch this until post-incident review.",
+  "graph_endpoint": "GET /auditLogs/signIns",
+  "value": [
+    {
+      "id": "a9b7c3d6-6f7a-9b8c-3d4e-5f6a7b8c9d0e",
+      "createdDateTime": "2026-06-05T20:11:33Z",
+      "userDisplayName": "Austin Ivaska",
+      "userPrincipalName": "austin.ivaska@Lab709.onmicrosoft.com",
+      "userId": "c3d4e5f6-a7b8-9012-cdef-012345678904",
+      "appId": "00000003-0000-0000-c000-000000000000",
+      "appDisplayName": "Microsoft Teams",
+      "ipAddress": "24.116.88.142",
+      "clientAppUsed": "Mobile Apps and Desktop clients",
+      "correlationId": "b6c7d8e9-f0a1-2345-f012-456789012345",
+      "conditionalAccessStatus": "success",
+      "isInteractive": true,
+      "riskDetail": "none",
+      "riskLevelAggregated": "none",
+      "riskLevelDuringSignIn": "none",
+      "riskState": "none",
+      "riskEventTypes": [],
+      "riskEventTypes_v2": [],
+      "resourceDisplayName": "Microsoft Teams",
+      "resourceId": "1fec8e78-bce4-4aaf-ab1b-5451cc387264",
+      "authenticationMethodsUsed": [],
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": null
+      },
+      "deviceDetail": {
+        "deviceId": "f3a4b5c6-d7e8-9012-cdef-012345678905",
+        "displayName": "AUSTIN-SURFACE-PRO",
+        "operatingSystem": "Windows 11",
+        "browser": "Teams Desktop 1.7",
+        "isCompliant": true,
+        "isManaged": true,
+        "trustType": "Azure AD Joined"
+      },
+      "location": {
+        "city": "Denver",
+        "state": "Colorado",
+        "countryOrRegion": "US",
+        "geoCoordinates": {
+          "latitude": 39.7392,
+          "longitude": -104.9903
+        }
+      },
+      "authenticationDetails": [
+        {
+          "authenticationStepDateTime": "2026-06-05T20:11:30Z",
+          "authenticationMethod": "Password",
+          "authenticationMethodDetail": null,
+          "succeeded": true,
+          "resultDetail": "Correct password"
+        },
+        {
+          "authenticationStepDateTime": "2026-06-05T20:11:32Z",
+          "authenticationMethod": "Microsoft Authenticator",
+          "authenticationMethodDetail": "Push notification",
+          "succeeded": true,
+          "resultDetail": "MFA completed"
+        }
+      ],
+      "authenticationRequirement": "multiFactorAuthentication",
+      "sessionId": "HIJACK-SESSION-ID-ZP4418",
+      "_authlokr_note": "SESSION START - Denver, managed device, MFA passed. Session token issued."
+    },
+    {
+      "id": "b0c8d4e7-7a8b-0c9d-4e5f-6a7b8c9d0e1f",
+      "createdDateTime": "2026-06-05T20:17:52Z",
+      "userDisplayName": "Austin Ivaska",
+      "userPrincipalName": "austin.ivaska@Lab709.onmicrosoft.com",
+      "userId": "c3d4e5f6-a7b8-9012-cdef-012345678904",
+      "appId": "00000003-0000-0000-c000-000000000000",
+      "appDisplayName": "Microsoft Teams",
+      "ipAddress": "116.228.100.45",
+      "clientAppUsed": "Browser",
+      "correlationId": "c7d8e9f0-a1b2-3456-0123-567890123456",
+      "conditionalAccessStatus": "success",
+      "isInteractive": false,
+      "riskDetail": "none",
+      "riskLevelAggregated": "high",
+      "riskLevelDuringSignIn": "high",
+      "riskState": "atRisk",
+      "riskEventTypes": ["impossibleTravel", "unfamiliarFeatures"],
+      "riskEventTypes_v2": ["impossibleTravel", "unfamiliarFeatures"],
+      "resourceDisplayName": "Microsoft Teams",
+      "resourceId": "1fec8e78-bce4-4aaf-ab1b-5451cc387264",
+      "authenticationMethodsUsed": [],
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": "Session continuation from anomalous location - no re-authentication"
+      },
+      "deviceDetail": {
+        "deviceId": "",
+        "displayName": "",
+        "operatingSystem": "Linux",
+        "browser": "Chrome 122.0",
+        "isCompliant": false,
+        "isManaged": false,
+        "trustType": "Unknown"
+      },
+      "location": {
+        "city": "Shanghai",
+        "state": "Shanghai",
+        "countryOrRegion": "CN",
+        "geoCoordinates": {
+          "latitude": 31.2304,
+          "longitude": 121.4737
+        }
+      },
+      "authenticationDetails": [
+        {
+          "authenticationStepDateTime": "2026-06-05T20:17:52Z",
+          "authenticationMethod": "Previously satisfied",
+          "authenticationMethodDetail": "Session token reuse",
+          "succeeded": true,
+          "resultDetail": "Session continued without re-authentication"
+        }
+      ],
+      "authenticationRequirement": "singleFactorAuthentication",
+      "sessionId": "HIJACK-SESSION-ID-ZP4418",
+      "_authlokr_note": "SESSION HIJACK DETECTED - Same sessionId as Denver sign-in 6 minutes prior. Denver->Shanghai impossible in 6 min (6,700 miles). Unmanaged Linux device. No re-auth. AuthLokr terminates session immediately. P2 detects high risk post-incident only."
+    },
+    {
+      "id": "c1d9e5f8-8b9c-1d0e-5f6a-7b8c9d0e1f2a",
+      "createdDateTime": "2026-06-05T20:18:04Z",
+      "userDisplayName": "Austin Ivaska",
+      "userPrincipalName": "austin.ivaska@Lab709.onmicrosoft.com",
+      "userId": "c3d4e5f6-a7b8-9012-cdef-012345678904",
+      "appId": "00000003-0000-0000-c000-000000000000",
+      "appDisplayName": "Microsoft Teams",
+      "ipAddress": "116.228.100.45",
+      "clientAppUsed": "Browser",
+      "correlationId": "d8e9f0a1-b2c3-4567-1234-678901234567",
+      "conditionalAccessStatus": "failure",
+      "isInteractive": false,
+      "riskDetail": "userPerformedSecuredPasswordChange",
+      "riskLevelAggregated": "high",
+      "riskLevelDuringSignIn": "high",
+      "riskState": "remediated",
+      "riskEventTypes": ["impossibleTravel"],
+      "riskEventTypes_v2": ["impossibleTravel"],
+      "resourceDisplayName": "Microsoft Teams",
+      "resourceId": "1fec8e78-bce4-4aaf-ab1b-5451cc387264",
+      "status": {
+        "errorCode": 53003,
+        "failureReason": "Blocked by Conditional Access",
+        "additionalDetails": "Session terminated by AuthLokr PIM workflow"
+      },
+      "deviceDetail": {
+        "deviceId": "",
+        "displayName": "",
+        "operatingSystem": "Linux",
+        "browser": "Chrome 122.0",
+        "isCompliant": false,
+        "isManaged": false,
+        "trustType": "Unknown"
+      },
+      "location": {
+        "city": "Shanghai",
+        "state": "Shanghai",
+        "countryOrRegion": "CN",
+        "geoCoordinates": {
+          "latitude": 31.2304,
+          "longitude": 121.4737
+        }
+      },
+      "authenticationRequirement": "singleFactorAuthentication",
+      "sessionId": "HIJACK-SESSION-ID-ZP4418",
+      "_authlokr_note": "SESSION TERMINATED - AuthLokr PIM workflow blocked further access. errorCode 53003 = Conditional Access block. Attack stopped 12 seconds after detection."
+    }
+  ]
+}

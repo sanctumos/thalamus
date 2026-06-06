@@ -1,0 +1,196 @@
+{
+  "scenario": "Custom Behavioral Baseline",
+  "description": "30 days of normal sign-in activity for maria.rainwaters - finance user who signs in at 2AM during month-end close. AuthLokr learns this pattern; P2 flags it as risky every time.",
+  "graph_endpoint": "GET /auditLogs/signIns",
+  "value": [
+    {
+      "id": "b4d2e8f1-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
+      "createdDateTime": "2026-06-05T14:22:31Z",
+      "userDisplayName": "Maria Rainwaters",
+      "userPrincipalName": "maria.rainwaters@Lab709.onmicrosoft.com",
+      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+      "appDisplayName": "Microsoft Office",
+      "ipAddress": "72.14.204.10",
+      "clientAppUsed": "Browser",
+      "correlationId": "c1d2e3f4-a5b6-7890-abcd-ef1234567890",
+      "conditionalAccessStatus": "success",
+      "isInteractive": true,
+      "riskDetail": "none",
+      "riskLevelAggregated": "none",
+      "riskLevelDuringSignIn": "none",
+      "riskState": "none",
+      "riskEventTypes": [],
+      "riskEventTypes_v2": [],
+      "resourceDisplayName": "Office 365 Exchange Online",
+      "resourceId": "00000002-0000-0ff1-ce00-000000000000",
+      "authenticationMethodsUsed": [],
+      "mfaDetail": null,
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": null
+      },
+      "deviceDetail": {
+        "deviceId": "d1e2f3a4-b5c6-7890-abcd-ef1234567890",
+        "displayName": "MARIA-LAPTOP-01",
+        "operatingSystem": "Windows 11",
+        "browser": "Chrome 124.0",
+        "isCompliant": true,
+        "isManaged": true,
+        "trustType": "Azure AD Joined"
+      },
+      "location": {
+        "city": "Denver",
+        "state": "Colorado",
+        "countryOrRegion": "US",
+        "geoCoordinates": {
+          "latitude": 39.7392,
+          "longitude": -104.9903
+        }
+      },
+      "appliedConditionalAccessPolicies": [
+        {
+          "id": "policy-001",
+          "displayName": "Require MFA for All Users",
+          "enforcedGrantControls": ["Mfa"],
+          "enforcedSessionControls": [],
+          "result": "success"
+        }
+      ],
+      "authenticationDetails": [
+        {
+          "authenticationStepDateTime": "2026-06-05T14:22:28Z",
+          "authenticationMethod": "Password",
+          "authenticationMethodDetail": null,
+          "succeeded": true,
+          "resultDetail": "Correct password"
+        },
+        {
+          "authenticationStepDateTime": "2026-06-05T14:22:30Z",
+          "authenticationMethod": "Microsoft Authenticator",
+          "authenticationMethodDetail": "Push notification",
+          "succeeded": true,
+          "resultDetail": "MFA completed"
+        }
+      ],
+      "authenticationRequirement": "multiFactorAuthentication",
+      "sessionId": "sess-normal-001-maria"
+    },
+    {
+      "id": "c5d3e9f2-2b3c-5d4e-9f0a-1b2c3d4e5f6a",
+      "createdDateTime": "2026-06-04T02:14:07Z",
+      "userDisplayName": "Maria Rainwaters",
+      "userPrincipalName": "maria.rainwaters@Lab709.onmicrosoft.com",
+      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+      "appDisplayName": "Microsoft Office",
+      "ipAddress": "72.14.204.10",
+      "clientAppUsed": "Browser",
+      "correlationId": "d2e3f4a5-b6c7-8901-bcde-f12345678901",
+      "conditionalAccessStatus": "success",
+      "isInteractive": true,
+      "riskDetail": "none",
+      "riskLevelAggregated": "none",
+      "riskLevelDuringSignIn": "none",
+      "riskState": "none",
+      "riskEventTypes": [],
+      "riskEventTypes_v2": [],
+      "resourceDisplayName": "Office 365 Exchange Online",
+      "resourceId": "00000002-0000-0ff1-ce00-000000000000",
+      "authenticationMethodsUsed": [],
+      "mfaDetail": null,
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": null
+      },
+      "deviceDetail": {
+        "deviceId": "d1e2f3a4-b5c6-7890-abcd-ef1234567890",
+        "displayName": "MARIA-LAPTOP-01",
+        "operatingSystem": "Windows 11",
+        "browser": "Chrome 124.0",
+        "isCompliant": true,
+        "isManaged": true,
+        "trustType": "Azure AD Joined"
+      },
+      "location": {
+        "city": "Denver",
+        "state": "Colorado",
+        "countryOrRegion": "US",
+        "geoCoordinates": {
+          "latitude": 39.7392,
+          "longitude": -104.9903
+        }
+      },
+      "appliedConditionalAccessPolicies": [],
+      "authenticationDetails": [
+        {
+          "authenticationStepDateTime": "2026-06-04T02:14:05Z",
+          "authenticationMethod": "Password",
+          "authenticationMethodDetail": null,
+          "succeeded": true,
+          "resultDetail": "Correct password"
+        },
+        {
+          "authenticationStepDateTime": "2026-06-04T02:14:06Z",
+          "authenticationMethod": "Microsoft Authenticator",
+          "authenticationMethodDetail": "Push notification",
+          "succeeded": true,
+          "resultDetail": "MFA completed"
+        }
+      ],
+      "authenticationRequirement": "multiFactorAuthentication",
+      "sessionId": "sess-normal-002-maria",
+      "_authlokr_note": "2AM sign-in during month-end close - NORMAL for this user. P2 flags HIGH risk. AuthLokr baseline suppresses false positive."
+    },
+    {
+      "id": "d6e4f0a3-3c4d-6e5f-0a1b-2c3d4e5f6a7b",
+      "createdDateTime": "2026-05-04T02:08:44Z",
+      "userDisplayName": "Maria Rainwaters",
+      "userPrincipalName": "maria.rainwaters@Lab709.onmicrosoft.com",
+      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+      "appDisplayName": "Microsoft Office",
+      "ipAddress": "72.14.204.10",
+      "clientAppUsed": "Browser",
+      "correlationId": "e3f4a5b6-c7d8-9012-cdef-123456789012",
+      "conditionalAccessStatus": "success",
+      "isInteractive": true,
+      "riskDetail": "none",
+      "riskLevelAggregated": "none",
+      "riskLevelDuringSignIn": "none",
+      "riskState": "none",
+      "riskEventTypes": [],
+      "riskEventTypes_v2": [],
+      "resourceDisplayName": "Office 365 Exchange Online",
+      "resourceId": "00000002-0000-0ff1-ce00-000000000000",
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": null
+      },
+      "deviceDetail": {
+        "deviceId": "d1e2f3a4-b5c6-7890-abcd-ef1234567890",
+        "displayName": "MARIA-LAPTOP-01",
+        "operatingSystem": "Windows 11",
+        "browser": "Chrome 124.0",
+        "isCompliant": true,
+        "isManaged": true,
+        "trustType": "Azure AD Joined"
+      },
+      "location": {
+        "city": "Denver",
+        "state": "Colorado",
+        "countryOrRegion": "US",
+        "geoCoordinates": {
+          "latitude": 39.7392,
+          "longitude": -104.9903
+        }
+      },
+      "authenticationRequirement": "multiFactorAuthentication",
+      "sessionId": "sess-normal-003-maria",
+      "_authlokr_note": "Prior month 2AM close - establishes recurring pattern for baseline"
+    }
+  ]
+}

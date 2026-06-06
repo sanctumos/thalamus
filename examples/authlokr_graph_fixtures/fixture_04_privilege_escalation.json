@@ -1,0 +1,270 @@
+{
+  "scenario": "Privilege Escalation Attack Chain",
+  "description": "Full attack chain: dwain.martinex has risky sign-in at 2AM from anomalous location, then Global Admin role is granted 4 minutes later, followed by bulk SharePoint access. AuthLokr correlates sign-in logs + audit logs to show complete attack chain. P2 would flag the risky sign-in but miss the privilege escalation and data access correlation.",
+  "sign_in_logs": {
+    "graph_endpoint": "GET /auditLogs/signIns",
+    "value": [
+      {
+        "id": "d2e0f6a9-9c0d-2e1f-6a7b-8c9d0e1f2a3b",
+        "createdDateTime": "2026-06-05T02:03:17Z",
+        "userDisplayName": "Dwain Martinex",
+        "userPrincipalName": "dwain.martinex@Lab709.onmicrosoft.com",
+        "userId": "d4e5f6a7-b8c9-0123-def0-123456789006",
+        "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+        "appDisplayName": "Microsoft Office",
+        "ipAddress": "185.220.101.34",
+        "clientAppUsed": "Browser",
+        "correlationId": "e9f0a1b2-c3d4-5678-2345-789012345678",
+        "conditionalAccessStatus": "success",
+        "isInteractive": true,
+        "riskDetail": "none",
+        "riskLevelAggregated": "high",
+        "riskLevelDuringSignIn": "high",
+        "riskState": "atRisk",
+        "riskEventTypes": ["anonymizedIPAddress", "unfamiliarFeatures"],
+        "riskEventTypes_v2": ["anonymizedIPAddress", "unfamiliarFeatures"],
+        "resourceDisplayName": "Office 365 Exchange Online",
+        "resourceId": "00000002-0000-0ff1-ce00-000000000000",
+        "authenticationMethodsUsed": [],
+        "status": {
+          "errorCode": 0,
+          "failureReason": null,
+          "additionalDetails": "Sign-in from Tor exit node - anonymized IP"
+        },
+        "deviceDetail": {
+          "deviceId": "",
+          "displayName": "",
+          "operatingSystem": "Windows 10",
+          "browser": "Firefox 125.0",
+          "isCompliant": false,
+          "isManaged": false,
+          "trustType": "Unknown"
+        },
+        "location": {
+          "city": "Frankfurt",
+          "state": "Hesse",
+          "countryOrRegion": "DE",
+          "geoCoordinates": {
+            "latitude": 50.1109,
+            "longitude": 8.6821
+          }
+        },
+        "authenticationDetails": [
+          {
+            "authenticationStepDateTime": "2026-06-05T02:03:14Z",
+            "authenticationMethod": "Password",
+            "authenticationMethodDetail": null,
+            "succeeded": true,
+            "resultDetail": "Correct password - possible credential compromise"
+          }
+        ],
+        "authenticationRequirement": "singleFactorAuthentication",
+        "sessionId": "sess-dwain-compromised-001",
+        "_authlokr_note": "STEP 1 of 3: Risky sign-in at 2AM from Tor exit node (Frankfurt). Unmanaged device. No MFA. High risk. This is the initial compromise event."
+      }
+    ]
+  },
+  "audit_logs": {
+    "graph_endpoint": "GET /auditLogs/directoryAudits",
+    "value": [
+      {
+        "id": "e3f1a7b0-0d1e-3f2a-7b8c-9d0e1f2a3b4c",
+        "category": "RoleManagement",
+        "correlationId": "f0a1b2c3-d4e5-6789-3456-890123456789",
+        "result": "success",
+        "resultReason": "",
+        "activityDisplayName": "Add member to role",
+        "activityDateTime": "2026-06-05T02:07:44Z",
+        "loggedByService": "Core Directory",
+        "operationType": "Assign",
+        "initiatedBy": {
+          "user": {
+            "id": "d4e5f6a7-b8c9-0123-def0-123456789006",
+            "displayName": "Dwain Martinex",
+            "userPrincipalName": "dwain.martinex@Lab709.onmicrosoft.com",
+            "ipAddress": "185.220.101.34"
+          },
+          "app": null
+        },
+        "targetResources": [
+          {
+            "id": "e5f6a7b8-c9d0-1234-ef01-234567890100",
+            "displayName": "Bridgett Maleonado",
+            "type": "User",
+            "userPrincipalName": "bridgett.maleonado@Lab709.onmicrosoft.com",
+            "modifiedProperties": [
+              {
+                "displayName": "Role.DisplayName",
+                "oldValue": "\"\"",
+                "newValue": "\"Global Administrator\""
+              },
+              {
+                "displayName": "Role.ObjectID",
+                "oldValue": "\"\"",
+                "newValue": "\"62e90394-69f5-4237-9190-012177145e10\""
+              },
+              {
+                "displayName": "Role.TemplateId",
+                "oldValue": "\"\"",
+                "newValue": "\"62e90394-69f5-4237-9190-012177145e10\""
+              }
+            ]
+          }
+        ],
+        "additionalDetails": [
+          {
+            "key": "Role.DisplayName",
+            "value": "Global Administrator"
+          },
+          {
+            "key": "ipaddr",
+            "value": "185.220.101.34"
+          }
+        ],
+        "_authlokr_note": "STEP 2 of 3: Global Admin granted to bridgett.maleonado BY dwain.martinex - 4 minutes after risky sign-in. Same IP (185.220.101.34) as compromised sign-in. P2 does not correlate audit logs with sign-in risk. AuthLokr links these events into attack chain."
+      },
+      {
+        "id": "f4a2b8c1-1e2f-4a3b-8c9d-0e1f2a3b4c5d",
+        "category": "SharePoint",
+        "correlationId": "a1b2c3d4-e5f6-7890-4567-901234567890",
+        "result": "success",
+        "resultReason": "",
+        "activityDisplayName": "FileAccessed",
+        "activityDateTime": "2026-06-05T02:09:21Z",
+        "loggedByService": "SharePoint",
+        "operationType": "Access",
+        "initiatedBy": {
+          "user": {
+            "id": "e5f6a7b8-c9d0-1234-ef01-234567890100",
+            "displayName": "Bridgett Maleonado",
+            "userPrincipalName": "bridgett.maleonado@Lab709.onmicrosoft.com",
+            "ipAddress": "185.220.101.34"
+          },
+          "app": null
+        },
+        "targetResources": [
+          {
+            "id": "sharepoint-site-001",
+            "displayName": "HR-Confidential-Records",
+            "type": "SharePointSite",
+            "modifiedProperties": []
+          }
+        ],
+        "additionalDetails": [
+          {
+            "key": "TargetFileExtension",
+            "value": "xlsx"
+          },
+          {
+            "key": "TargetFileName",
+            "value": "Employee_Compensation_2026.xlsx"
+          },
+          {
+            "key": "SiteUrl",
+            "value": "https://lab709.sharepoint.com/sites/HR-Confidential"
+          },
+          {
+            "key": "ipaddr",
+            "value": "185.220.101.34"
+          },
+          {
+            "key": "FilesAccessed",
+            "value": "47"
+          }
+        ],
+        "_authlokr_note": "STEP 3 of 3: 47 files accessed from HR-Confidential site by newly-elevated bridgett.maleonado account. Same IP as initial compromise. 2 minutes after role grant. AuthLokr shows complete chain: Risky Sign-in (02:03) -> Global Admin Grant (02:07) -> Bulk Data Access (02:09). P2 sees only isolated risk events."
+      },
+      {
+        "id": "a5b3c9d2-2f3a-5b4c-9d0e-1f2a3b4c5d6e",
+        "category": "RoleManagement",
+        "correlationId": "b2c3d4e5-f6a7-8901-5678-012345678901",
+        "result": "success",
+        "resultReason": "",
+        "activityDisplayName": "Add eligible member to role",
+        "activityDateTime": "2026-06-05T02:07:51Z",
+        "loggedByService": "PIM",
+        "operationType": "Assign",
+        "initiatedBy": {
+          "user": {
+            "id": "d4e5f6a7-b8c9-0123-def0-123456789006",
+            "displayName": "Dwain Martinex",
+            "userPrincipalName": "dwain.martinex@Lab709.onmicrosoft.com",
+            "ipAddress": "185.220.101.34"
+          },
+          "app": null
+        },
+        "targetResources": [
+          {
+            "id": "e5f6a7b8-c9d0-1234-ef01-234567890100",
+            "displayName": "Bridgett Maleonado",
+            "type": "User",
+            "userPrincipalName": "bridgett.maleonado@Lab709.onmicrosoft.com",
+            "modifiedProperties": [
+              {
+                "displayName": "Role.DisplayName",
+                "oldValue": "\"\"",
+                "newValue": "\"Global Administrator\""
+              }
+            ]
+          }
+        ],
+        "additionalDetails": [
+          {
+            "key": "Role.DisplayName",
+            "value": "Global Administrator"
+          },
+          {
+            "key": "PimActivationType",
+            "value": "DirectAssignment"
+          },
+          {
+            "key": "ipaddr",
+            "value": "185.220.101.34"
+          }
+        ],
+        "_authlokr_note": "PIM direct assignment bypass - attacker used PIM to grant permanent (not time-bound) Global Admin. AuthLokr PIM workflow should have blocked this given prior risky sign-in risk score."
+      }
+    ]
+  },
+  "authlokr_attack_chain_summary": {
+    "chain_id": "CHAIN-2026-06-05-DWAIN-001",
+    "severity": "CRITICAL",
+    "events": [
+      {
+        "sequence": 1,
+        "timestamp": "2026-06-05T02:03:17Z",
+        "type": "RiskySignIn",
+        "actor": "dwain.martinex@Lab709.onmicrosoft.com",
+        "detail": "Sign-in from Tor exit node, unmanaged device, no MFA",
+        "risk_score": 85
+      },
+      {
+        "sequence": 2,
+        "timestamp": "2026-06-05T02:07:44Z",
+        "type": "PrivilegeEscalation",
+        "actor": "dwain.martinex@Lab709.onmicrosoft.com",
+        "detail": "Granted Global Administrator to bridgett.maleonado",
+        "risk_score": 95
+      },
+      {
+        "sequence": 3,
+        "timestamp": "2026-06-05T02:07:51Z",
+        "type": "PIMBypass",
+        "actor": "dwain.martinex@Lab709.onmicrosoft.com",
+        "detail": "PIM direct assignment - permanent GA grant bypassing approval workflow",
+        "risk_score": 98
+      },
+      {
+        "sequence": 4,
+        "timestamp": "2026-06-05T02:09:21Z",
+        "type": "DataExfiltration",
+        "actor": "bridgett.maleonado@Lab709.onmicrosoft.com",
+        "detail": "47 files accessed from HR-Confidential site using newly elevated permissions",
+        "risk_score": 99
+      }
+    ],
+    "combined_risk_score": 99,
+    "p2_visibility": "Detects Step 1 (risky sign-in) only. Steps 2-4 invisible to P2.",
+    "authlokr_visibility": "Full chain correlated across sign-in logs and audit logs in real-time."
+  }
+}

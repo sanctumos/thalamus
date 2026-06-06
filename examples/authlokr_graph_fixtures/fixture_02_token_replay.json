@@ -1,0 +1,133 @@
+{
+  "scenario": "MiTM Token Replay Attack",
+  "description": "Attacker intercepts and replays auth token for eddie.pergola. Token originally issued in Denver, replayed from Moscow 4 minutes later. Same token issuance ID, different IP and location. AuthLokr detects via tokenIssuanceType + location delta. P2 detects risky sign-in post-incident only.",
+  "graph_endpoint": "GET /auditLogs/signIns",
+  "value": [
+    {
+      "id": "e7f5a1b4-4d5e-7f6a-1b2c-3d4e5f6a7b8c",
+      "createdDateTime": "2026-06-05T18:04:12Z",
+      "userDisplayName": "Eddie Pergola",
+      "userPrincipalName": "eddie.pergola@Lab709.onmicrosoft.com",
+      "userId": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
+      "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+      "appDisplayName": "Microsoft Office",
+      "ipAddress": "68.132.45.22",
+      "clientAppUsed": "Browser",
+      "correlationId": "f4a5b6c7-d8e9-0123-def0-234567890123",
+      "conditionalAccessStatus": "success",
+      "isInteractive": true,
+      "riskDetail": "none",
+      "riskLevelAggregated": "none",
+      "riskLevelDuringSignIn": "none",
+      "riskState": "none",
+      "riskEventTypes": [],
+      "riskEventTypes_v2": [],
+      "resourceDisplayName": "Office 365 SharePoint Online",
+      "resourceId": "00000003-0000-0ff1-ce00-000000000000",
+      "tokenIssuancePolicy": null,
+      "authenticationMethodsUsed": [],
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": null
+      },
+      "deviceDetail": {
+        "deviceId": "e2f3a4b5-c6d7-8901-bcde-f12345678903",
+        "displayName": "EDDIE-WORKSTATION",
+        "operatingSystem": "Windows 11",
+        "browser": "Edge 124.0",
+        "isCompliant": true,
+        "isManaged": true,
+        "trustType": "Azure AD Joined"
+      },
+      "location": {
+        "city": "Denver",
+        "state": "Colorado",
+        "countryOrRegion": "US",
+        "geoCoordinates": {
+          "latitude": 39.7392,
+          "longitude": -104.9903
+        }
+      },
+      "authenticationDetails": [
+        {
+          "authenticationStepDateTime": "2026-06-05T18:04:10Z",
+          "authenticationMethod": "Password",
+          "authenticationMethodDetail": null,
+          "succeeded": true,
+          "resultDetail": "Correct password"
+        },
+        {
+          "authenticationStepDateTime": "2026-06-05T18:04:11Z",
+          "authenticationMethod": "Microsoft Authenticator",
+          "authenticationMethodDetail": "Push notification",
+          "succeeded": true,
+          "resultDetail": "MFA completed"
+        }
+      ],
+      "authenticationRequirement": "multiFactorAuthentication",
+      "uniqueTokenIdentifier": "TOKEN-REPLAY-ID-XK7291",
+      "sessionId": "sess-eddie-legit-001",
+      "_authlokr_note": "LEGITIMATE sign-in - Denver, normal device, MFA passed. Token issued here."
+    },
+    {
+      "id": "f8a6b2c5-5e6f-8a7b-2c3d-4e5f6a7b8c9d",
+      "createdDateTime": "2026-06-05T18:08:47Z",
+      "userDisplayName": "Eddie Pergola",
+      "userPrincipalName": "eddie.pergola@Lab709.onmicrosoft.com",
+      "userId": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
+      "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+      "appDisplayName": "Microsoft Office",
+      "ipAddress": "95.173.136.70",
+      "clientAppUsed": "Browser",
+      "correlationId": "a5b6c7d8-e9f0-1234-ef01-345678901234",
+      "conditionalAccessStatus": "success",
+      "isInteractive": false,
+      "riskDetail": "none",
+      "riskLevelAggregated": "medium",
+      "riskLevelDuringSignIn": "medium",
+      "riskState": "atRisk",
+      "riskEventTypes": ["unfamiliarFeatures"],
+      "riskEventTypes_v2": ["unfamiliarFeatures"],
+      "resourceDisplayName": "Office 365 SharePoint Online",
+      "resourceId": "00000003-0000-0ff1-ce00-000000000000",
+      "authenticationMethodsUsed": [],
+      "status": {
+        "errorCode": 0,
+        "failureReason": null,
+        "additionalDetails": "Token replay detected - no new MFA challenge issued"
+      },
+      "deviceDetail": {
+        "deviceId": "",
+        "displayName": "",
+        "operatingSystem": "Windows 10",
+        "browser": "Chrome 123.0",
+        "isCompliant": false,
+        "isManaged": false,
+        "trustType": "Unknown"
+      },
+      "location": {
+        "city": "Moscow",
+        "state": "Moscow Oblast",
+        "countryOrRegion": "RU",
+        "geoCoordinates": {
+          "latitude": 55.7558,
+          "longitude": 37.6173
+        }
+      },
+      "authenticationDetails": [
+        {
+          "authenticationStepDateTime": "2026-06-05T18:08:47Z",
+          "authenticationMethod": "Previously satisfied",
+          "authenticationMethodDetail": "Token reuse - no interactive auth",
+          "succeeded": true,
+          "resultDetail": "Token accepted without re-authentication"
+        }
+      ],
+      "authenticationRequirement": "singleFactorAuthentication",
+      "uniqueTokenIdentifier": "TOKEN-REPLAY-ID-XK7291",
+      "sessionId": "sess-eddie-legit-001",
+      "_authlokr_note": "TOKEN REPLAY DETECTED - Same uniqueTokenIdentifier as legitimate sign-in 4 minutes prior. Denver -> Moscow in 4 minutes is impossible travel. No MFA re-challenge. Unmanaged device. AuthLokr CRITICAL alert. P2 flags medium risk post-incident."
+    }
+  ]
+}
