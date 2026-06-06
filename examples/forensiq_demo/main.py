@@ -21,8 +21,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 import asyncio
+import json
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 import re
 import random
@@ -44,6 +46,7 @@ from rich.markup import escape
 # Global flags for testing and debugging
 TEST_MODE = False
 AUTO_CLOSE = False
+AUTO_CLOSE_SECONDS = 0.0
 DEBUG_VISUAL = False
 SCREENSHOT_MODE = False
 SCENARIO = "forensiq"
@@ -386,7 +389,176 @@ def _timeline_mitm_late() -> List[Dict]:
     ]
 
 
+def _fixture_dir() -> Path:
+    return Path(__file__).resolve().parent.parent / "authlokr_graph_fixtures"
+
+
+def _load_fixture(name: str) -> Dict:
+    with (_fixture_dir() / name).open("r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _short_ts(ts: str) -> str:
+    return ts.replace("T", " ").replace("Z", " UTC")
+
+
+def _geo(evt: Dict) -> str:
+    loc = evt.get("location") or {}
+    return f"{loc.get('city', '?')}, {loc.get('countryOrRegion', '?')}"
+
+
+def _timeline_fixture_baseline() -> List[Dict]:
+    fixture = _load_fixture("fixture_01_behavioral_baseline.json")
+    events = sorted(fixture.get("value", []), key=lambda e: e.get("createdDateTime", ""))
+    user = events[0].get("userPrincipalName", "unknown-user") if events else "unknown-user"
+    out: List[Dict] = [
+        {"type": "console", "level": "INFO", "message": f"Fixture loaded: {fixture.get('scenario', 'Baseline')}", "process": "FIXTURE"},
+        {"type": "console", "level": "INFO", "message": f"User behavioral profile: {user}", "process": "AUTH"},
+    ]
+    for evt in events:
+        out.append(
+            {
+                "type": "console",
+                "level": "INFO",
+                "message": f"Observed sign-in {_short_ts(evt.get('createdDateTime', ''))} from {_geo(evt)} using {evt.get('deviceDetail', {}).get('displayName', 'unknown-device')}",
+                "process": "AUTH",
+            }
+        )
+    out.extend(
+        [
+            {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Repeated after-hours sign-ins detected for finance account"},
+            {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Pattern matches learned month-end baseline. Suppressing false positive."},
+            {"type": "prime_tool", "action": "write_block", "message": "Documenting baseline suppression decision"},
+            {
+                "type": "memory",
+                "data": {
+                    "title": "BASELINE LEARNED - NO ALERT",
+                    "content": f"{user} recurrent sign-in pattern is consistent by hour, IP, location, and managed device. AuthLokr suppression active.",
+                },
+            },
+        ]
+    )
+    return out
+
+
+def _timeline_fixture_token_replay() -> List[Dict]:
+    fixture = _load_fixture("fixture_02_token_replay.json")
+    events = sorted(fixture.get("value", []), key=lambda e: e.get("createdDateTime", ""))
+    first = events[0]
+    second = events[1]
+    user = second.get("userPrincipalName", "unknown-user")
+    out: List[Dict] = [
+        {"type": "console", "level": "INFO", "message": f"Fixture loaded: {fixture.get('scenario', 'Token replay')}", "process": "FIXTURE"},
+        {"type": "console", "level": "INFO", "message": f"Legit sign-in {_short_ts(first.get('createdDateTime', ''))} from {_geo(first)}", "process": "AUTH"},
+        {"type": "console", "level": "WARN", "message": f"Token/session reuse detected for {user}", "process": "AUTH", "highlight": True},
+        {"type": "console", "level": "ERROR", "message": f"Replay event {_short_ts(second.get('createdDateTime', ''))} from {_geo(second)} (non-interactive, unmanaged)", "process": "AUTH", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Same token/session appears across impossible geography delta"},
+        {"type": "cerebellum_internal", "sender": "Cerebellum", "message": "Escalating replay anomaly as active session hijack risk"},
+        {"type": "escalation", "message": "CRITICAL token replay pattern detected - immediate containment requested"},
+        {"type": "prime_response", "message": "Correlating uniqueTokenIdentifier + sessionId + MFA downgrade"},
+        {"type": "prime_tool", "action": "revoke_sessions", "message": f"Revoking active sessions for {user}"},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating critical alert: TOKEN REPLAY"},
+        {
+            "type": "memory",
+            "data": {
+                "title": "CRITICAL ALERT - TOKEN REPLAY",
+                "content": f"{user}: same unique token/session replayed {_geo(first)} -> {_geo(second)} in minutes with MFA downgrade and unmanaged device.",
+            },
+        },
+    ]
+    return out
+
+
+def _timeline_fixture_session_hijack() -> List[Dict]:
+    fixture = _load_fixture("fixture_03_session_hijacking.json")
+    events = sorted(fixture.get("value", []), key=lambda e: e.get("createdDateTime", ""))
+    first, second, third = events[0], events[1], events[2]
+    user = second.get("userPrincipalName", "unknown-user")
+    out: List[Dict] = [
+        {"type": "console", "level": "INFO", "message": f"Fixture loaded: {fixture.get('scenario', 'Session hijacking')}", "process": "FIXTURE"},
+        {"type": "console", "level": "INFO", "message": f"Session start {_short_ts(first.get('createdDateTime', ''))} from {_geo(first)}", "process": "AUTH"},
+        {"type": "console", "level": "CRITICAL", "message": f"Mid-session IP/location jump {_geo(first)} -> {_geo(second)} using same sessionId", "process": "AUTH", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Session continuity from impossible location detected"},
+        {"type": "escalation", "message": "CRITICAL session hijacking pattern - terminate session"},
+        {"type": "prime_response", "message": "Executing conditional access enforcement workflow"},
+        {"type": "prime_tool", "action": "terminate_session", "message": f"Terminating {second.get('sessionId', 'session-id')} for {user}"},
+        {"type": "console", "level": "WARN", "message": f"Follow-up event blocked with errorCode {third.get('status', {}).get('errorCode', 'unknown')} ({third.get('status', {}).get('failureReason', 'blocked')})", "process": "AUTH", "highlight": True},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating critical alert: SESSION HIJACKING"},
+        {
+            "type": "memory",
+            "data": {
+                "title": "CRITICAL ALERT - SESSION HIJACKING",
+                "content": f"{user}: sessionId {second.get('sessionId', 'unknown')} moved {_geo(first)} -> {_geo(second)} in minutes; access blocked by policy.",
+            },
+        },
+    ]
+    return out
+
+
+def _audit_detail(evt: Dict, key: str, default: str = "") -> str:
+    for pair in evt.get("additionalDetails", []):
+        if pair.get("key") == key:
+            return str(pair.get("value", default))
+    return default
+
+
+def _timeline_fixture_privilege_chain() -> List[Dict]:
+    fixture = _load_fixture("fixture_04_privilege_escalation.json")
+    sign_in = (fixture.get("sign_in_logs", {}).get("value") or [])[0]
+    audits = sorted(fixture.get("audit_logs", {}).get("value", []), key=lambda e: e.get("activityDateTime", ""))
+    role_evt = next((a for a in audits if a.get("activityDisplayName") == "Add member to role"), audits[0])
+    pim_evt = next((a for a in audits if a.get("activityDisplayName") == "Add eligible member to role"), audits[0])
+    data_evt = next((a for a in audits if a.get("activityDisplayName") == "FileAccessed"), audits[-1])
+    actor = sign_in.get("userPrincipalName", "unknown-actor")
+    target = (role_evt.get("targetResources") or [{}])[0].get("userPrincipalName", "unknown-target")
+    out: List[Dict] = [
+        {"type": "console", "level": "INFO", "message": f"Fixture loaded: {fixture.get('scenario', 'Privilege escalation chain')}", "process": "FIXTURE"},
+        {"type": "console", "level": "CRITICAL", "message": f"Risky sign-in {_short_ts(sign_in.get('createdDateTime', ''))} from {_geo(sign_in)} via anonymized IP {sign_in.get('ipAddress', '?')}", "process": "AUTH", "highlight": True},
+        {"type": "console", "level": "WARN", "message": f"Role assignment {_short_ts(role_evt.get('activityDateTime', ''))}: {target} granted {_audit_detail(role_evt, 'Role.DisplayName', 'Global Administrator')}", "process": "IAM", "highlight": True},
+        {"type": "console", "level": "WARN", "message": f"PIM event {_short_ts(pim_evt.get('activityDateTime', ''))}: activation type {_audit_detail(pim_evt, 'PimActivationType', 'unknown')}", "process": "PIM", "highlight": True},
+        {"type": "console", "level": "CRITICAL", "message": f"Data access {_short_ts(data_evt.get('activityDateTime', ''))}: {_audit_detail(data_evt, 'FilesAccessed', '?')} files from {_audit_detail(data_evt, 'SiteUrl', 'sensitive site')}", "process": "DATA", "highlight": True},
+        {"type": "cerebellum_internal", "sender": "Thalamus", "message": "Cross-source chain detected: sign-in risk -> role grant -> PIM bypass -> data access"},
+        {"type": "escalation", "message": "CRITICAL privilege escalation chain confirmed"},
+        {"type": "prime_response", "message": "Correlating sign-in and directory audit telemetry into single attack chain"},
+        {"type": "prime_tool", "action": "suspend_accounts", "message": f"Suspending actor {actor} and target {target} pending IR"},
+        {"type": "prime_tool", "action": "write_block", "message": "Creating critical alert: PRIVILEGE ESCALATION CHAIN"},
+        {
+            "type": "memory",
+            "data": {
+                "title": "CRITICAL ALERT - PRIVILEGE ESCALATION CHAIN",
+                "content": f"Compromised sign-in by {actor} correlated with Global Admin grant to {target} and bulk sensitive file access from IP {sign_in.get('ipAddress', '?')}.",
+            },
+        },
+    ]
+    return out
+
+
+def _timeline_graph_fixtures_all() -> List[Dict]:
+    out: List[Dict] = [
+        {"type": "console", "level": "INFO", "message": "Graph fixture bundle loaded (4 scenarios)", "process": "FIXTURE"},
+        {"type": "console", "level": "INFO", "message": "Running baseline, token replay, session hijack, and privilege chain narratives", "process": "FIXTURE"},
+    ]
+    for section in [
+        _timeline_fixture_baseline(),
+        _timeline_fixture_token_replay(),
+        _timeline_fixture_session_hijack(),
+        _timeline_fixture_privilege_chain(),
+    ]:
+        out.extend(section)
+    return out
+
+
 def build_timeline(scenario: str) -> List[Dict]:
+    if scenario == "graph-baseline":
+        return _timeline_fixture_baseline()
+    if scenario == "graph-token-replay":
+        return _timeline_fixture_token_replay()
+    if scenario == "graph-session-hijack":
+        return _timeline_fixture_session_hijack()
+    if scenario == "graph-privilege-chain":
+        return _timeline_fixture_privilege_chain()
+    if scenario == "graph-fixtures":
+        return _timeline_graph_fixtures_all()
     if scenario == "mitm":
         return _timeline_shared_prefix() + _timeline_mitm_late()
     return _timeline_shared_prefix() + _timeline_forensiq_late()
@@ -985,7 +1157,10 @@ class SanctumApp(App):
         
         # Auto-close timer if enabled
         if AUTO_CLOSE:
-            self.set_timer(25.0, self.exit)  # Extended time for SSH login
+            timeout_seconds = AUTO_CLOSE_SECONDS
+            if timeout_seconds <= 0:
+                timeout_seconds = 130.0 if SCENARIO == "graph-fixtures" else 25.0
+            self.set_timer(timeout_seconds, self.exit)  # Includes SSH login pre-roll
     
     def on_console_log(self, message: ConsoleLog):
         """Handle console log messages"""
@@ -1062,7 +1237,7 @@ class SanctumApp(App):
 
 def main():
     """Main entry point"""
-    global TEST_MODE, AUTO_CLOSE, DEBUG_VISUAL, SCREENSHOT_MODE, SCENARIO
+    global TEST_MODE, AUTO_CLOSE, AUTO_CLOSE_SECONDS, DEBUG_VISUAL, SCREENSHOT_MODE, SCENARIO
     
     parser = argparse.ArgumentParser(description="Sanctum Cognitive UI Demo - TUI Version")
     parser.add_argument("--test", action="store_true", help="Run in test mode")
@@ -1071,15 +1246,30 @@ def main():
     parser.add_argument("--screenshot", action="store_true", help="Enable screenshot mode")
     parser.add_argument(
         "--scenario",
-        choices=("forensiq", "mitm"),
+        choices=(
+            "forensiq",
+            "mitm",
+            "graph-fixtures",
+            "graph-baseline",
+            "graph-token-replay",
+            "graph-session-hijack",
+            "graph-privilege-chain",
+        ),
         default="forensiq",
-        help="Demo incident script: forensiq (default) or mitm (hospital token-abuse narrative)",
+        help="Demo incident script: legacy scenarios or Graph fixture-driven scenarios",
+    )
+    parser.add_argument(
+        "--auto-close-seconds",
+        type=float,
+        default=0,
+        help="Override auto-close timer in seconds (0 uses scenario default).",
     )
     
     args = parser.parse_args()
     
     TEST_MODE = args.test
     AUTO_CLOSE = args.auto_close
+    AUTO_CLOSE_SECONDS = args.auto_close_seconds
     DEBUG_VISUAL = args.debug_visual
     SCREENSHOT_MODE = args.screenshot
     SCENARIO = args.scenario

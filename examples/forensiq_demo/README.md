@@ -35,6 +35,20 @@ Release tag: [`forensiq-demo-1.0`](https://github.com/sanctumos/thalamus/release
 
 Release tag: [`forensiq-demo-mitm-1.0`](https://github.com/sanctumos/thalamus/releases/tag/forensiq-demo-mitm-1.0)
 
+### Graph fixture scenarios (`--scenario graph-fixtures`)
+
+**Videos:**
+- [captures/graph-fixtures/graph-fixtures-wide.mp4](captures/graph-fixtures/graph-fixtures-wide.mp4) (240x56)
+- [captures/graph-fixtures/graph-fixtures-narrow.mp4](captures/graph-fixtures/graph-fixtures-narrow.mp4) (100x30)
+
+| Frame | Caption |
+|-------|---------|
+| ![Wide start](captures/graph-fixtures/wide-01-start.png) | Startup/four-pane layout with fixture mode active |
+| ![Wide token + session](captures/graph-fixtures/wide-02-token.png) | Baseline suppression + token replay + session hijack alerts |
+| ![Wide late chain](captures/graph-fixtures/wide-03-late.png) | Privilege escalation chain visible in chat/memory panes |
+| ![Narrow start](captures/graph-fixtures/narrow-01-start.png) | Narrow viewport rendering check |
+| ![Narrow mid](captures/graph-fixtures/narrow-02-mid.png) | Narrow viewport with active alerts and wrapped memory text |
+
 ## Overview
 
 The Forensiq demo showcases the cognitive architecture described in the Thalamus whitepaper through an interactive terminal interface. It simulates the flow of information through different cognitive layers including:
@@ -69,12 +83,21 @@ python main.py
 |------|-----------|
 | `--scenario forensiq` (default) | HR incident, brute force, active breach |
 | `--scenario mitm` | Hospital token-abuse / MITM (Denver→Toledo reuse, privileged takeover, **CRITICAL ALERT: POTENTIAL MAN-IN-THE-MIDDLE**) |
+| `--scenario graph-fixtures` | Run all 4 Graph fixture narratives from `examples/authlokr_graph_fixtures/` |
+| `--scenario graph-baseline` | Fixture 01 baseline learning (NO alert) |
+| `--scenario graph-token-replay` | Fixture 02 token replay (CRITICAL) |
+| `--scenario graph-session-hijack` | Fixture 03 session hijacking (CRITICAL + block) |
+| `--scenario graph-privilege-chain` | Fixture 04 privilege escalation chain (CRITICAL) |
 
 ```bash
 python main.py --auto-close --scenario mitm
 ```
 
-For screen capture, use a wide terminal (`COLUMNS=240 LINES=56`) and extend the auto-close timer if needed (upstream default is 25s; full timeline needs ~90s).
+```bash
+python main.py --auto-close --scenario graph-fixtures --auto-close-seconds 140
+```
+
+For screen capture, use a wide terminal (`COLUMNS=240 LINES=56`) and extend the auto-close timer if needed with `--auto-close-seconds`.
 
 ## Architecture
 
