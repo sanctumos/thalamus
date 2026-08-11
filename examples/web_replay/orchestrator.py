@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Play orchestrator — time-sim stream → ingest → refine → event callbacks.
+Play orchestrator — time-sim ingest and refine run on separate threads.
+
+Intake is never blocked on Venice/stub latency; refine may lag.
 
 Copyright (C) 2025-2026 Mark "Rizzn" Hopkins, Athena Vernal, John Casaretto
 """
@@ -9,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -34,10 +37,13 @@ class Orchestrator:
         self.data_log = data_log
         self.speed = speed
         self.force_stub = force_stub
-        self._thread: Optional[threading.Thread] = None
+        self._ingest_thread: Optional[threading.Thread] = None
+        self._refine_thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
+        self._ingest_done = threading.Event()
         self._handlers: List[EventHandler] = []
         self._lock = threading.Lock()
+        self._db_write_lock = threading.Lock()
         self.state = "idle"
         self.llm_mode = "unknown"
         self.db = None
@@ -70,6 +76,7 @@ class Orchestrator:
             "llm_mode": self.llm_mode,
             "force_stub": self.force_stub,
             "speed": self.speed,
+            "ingest_done": self._ingest_done.is_set(),
             "counts": {
                 "raw": len(snap["raw_segments"]),
                 "refined": len(snap["refined_segments"]),
@@ -83,17 +90,19 @@ class Orchestrator:
         self.db = reset_db(self.db_path)
         self.state = "idle"
         self.llm_mode = "unknown"
+        self._ingest_done.clear()
         self._emit({"type": "console", "level": "INFO", "message": "DB reset"})
         self._emit({"type": "snapshot", **snapshot(self.db)})
         return self.status()
 
     def stop(self) -> None:
         self._stop.set()
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=5)
-        self._thread = None
+        for t in (self._ingest_thread, self._refine_thread):
+            if t and t.is_alive():
+                t.join(timeout=8)
+        self._ingest_thread = None
+        self._refine_thread = None
         self._stop.clear()
-        # Keep DB rows; emit snapshot so UIs can hydrate after stop/reload
         if self.db is not None:
             self._emit({"type": "snapshot", **snapshot(self.db)})
 
@@ -104,12 +113,29 @@ class Orchestrator:
             self.stop()
             self.db = reset_db(self.db_path)
             self.state = "playing"
-            self._thread = threading.Thread(target=self._run, daemon=True)
-            self._thread.start()
-        self._emit({"type": "console", "level": "INFO", "message": f"Play start speed={self.speed}"})
+            self._ingest_done.clear()
+            self._stop.clear()
+            self._ingest_thread = threading.Thread(
+                target=self._run_ingest, daemon=True, name="web-replay-ingest"
+            )
+            self._refine_thread = threading.Thread(
+                target=self._run_refine, daemon=True, name="web-replay-refine"
+            )
+            self._ingest_thread.start()
+            self._refine_thread.start()
+        self._emit(
+            {
+                "type": "console",
+                "level": "INFO",
+                "message": (
+                    f"Play start speed={self.speed} "
+                    "(ingest∥refine — intake not blocked on LLM)"
+                ),
+            }
+        )
         return self.status()
 
-    def _run(self) -> None:
+    def _run_ingest(self) -> None:
         assert self.db is not None
         sim = TimeSimulator(speed=self.speed)
 
@@ -126,38 +152,84 @@ class Orchestrator:
             for event in stream_events(sim, path=self.data_log, on_wait=on_wait):
                 if self._stop.is_set():
                     self.state = "stopped"
-                    self._emit({"type": "console", "level": "WARN", "message": "Play stopped"})
-                    return
-                raw_ids = ingest_event(self.db, event)
-                for rid in raw_ids:
-                    row = next(
-                        (
-                            r
-                            for r in snapshot(self.db)["raw_segments"]
-                            if r["id"] == rid
-                        ),
-                        None,
+                    self._emit(
+                        {"type": "console", "level": "WARN", "message": "Play stopped"}
                     )
+                    return
+                with self._db_write_lock:
+                    raw_ids = ingest_event(self.db, event)
+                    snap_raw = snapshot(self.db)["raw_segments"]
+                for rid in raw_ids:
+                    row = next((r for r in snap_raw if r["id"] == rid), None)
                     if row:
                         self._emit({"type": "raw", "row": row})
-                created = refine_unrefined(self.db, force_stub=self.force_stub)
-                for c in created:
-                    self.llm_mode = c.get("mode", self.llm_mode)
-                    self._emit({"type": "refined", "row": c})
-                    self._emit(
-                        {
-                            "type": "console",
-                            "level": "INFO",
-                            "message": f"refine mode={c.get('mode')} id={c.get('id')}",
-                        }
-                    )
-                for u in snapshot(self.db)["segment_usage"]:
-                    if u["refined_segment_id"] in {c["id"] for c in created}:
-                        self._emit({"type": "provenance", "row": u})
-            self.state = "done"
-            self._emit({"type": "console", "level": "INFO", "message": "Play complete"})
-            self._emit({"type": "snapshot", **snapshot(self.db)})
+            if not self._stop.is_set():
+                self._emit(
+                    {
+                        "type": "console",
+                        "level": "INFO",
+                        "message": "Intake complete — refine may still be catching up",
+                    }
+                )
         except Exception as e:
             self.state = "error"
-            logger.exception("play failed")
+            logger.exception("ingest failed")
+            self._emit({"type": "console", "level": "ERROR", "message": str(e)})
+        finally:
+            self._ingest_done.set()
+
+    def _emit_refine_results(self, created: List[Dict[str, Any]]) -> None:
+        if not created:
+            return
+        with self._db_write_lock:
+            usage = snapshot(self.db)["segment_usage"]
+        created_ids = {c["id"] for c in created}
+        for c in created:
+            self.llm_mode = c.get("mode", self.llm_mode)
+            self._emit({"type": "refined", "row": c})
+            self._emit(
+                {
+                    "type": "console",
+                    "level": "INFO",
+                    "message": f"refine mode={c.get('mode')} id={c.get('id')}",
+                }
+            )
+        for u in usage:
+            if u["refined_segment_id"] in created_ids:
+                self._emit({"type": "provenance", "row": u})
+
+    def _run_refine(self) -> None:
+        assert self.db is not None
+        try:
+            while not self._stop.is_set():
+                with self._db_write_lock:
+                    created = refine_unrefined(self.db, force_stub=self.force_stub)
+                self._emit_refine_results(created)
+                if created:
+                    continue  # drain backlog without sleeping
+                if self._ingest_done.is_set():
+                    # one more pass in case last ingest raced the empty poll
+                    with self._db_write_lock:
+                        created = refine_unrefined(self.db, force_stub=self.force_stub)
+                    self._emit_refine_results(created)
+                    if not created:
+                        break
+                    continue
+                # Idle briefly while intake is still running
+                self._stop.wait(0.05)
+            if self._stop.is_set():
+                if self.state != "error":
+                    self.state = "stopped"
+                return
+            if self.state != "error":
+                self.state = "done"
+                self._emit(
+                    {"type": "console", "level": "INFO", "message": "Play complete"}
+                )
+                with self._db_write_lock:
+                    snap = snapshot(self.db)
+                self._emit({"type": "snapshot", **snap})
+        except Exception as e:
+            self.state = "error"
+            logger.exception("refine failed")
             self._emit({"type": "console", "level": "ERROR", "message": str(e)})

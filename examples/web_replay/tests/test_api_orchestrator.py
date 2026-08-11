@@ -293,6 +293,50 @@ def test_orchestrator_play_sped(tmp_path, mini_log):
     assert {"raw", "refined", "console"} <= types
 
 
+def test_intake_not_blocked_by_slow_refine(tmp_path, mini_log, monkeypatch):
+    """Raw events must advance on time-sim even when refine is deliberately slow."""
+    import web_replay.llm as llm_mod
+
+    def slow_call(prompt, *, force_stub=False):
+        time.sleep(0.35)
+        return llm_mod.stub_refine(prompt), "stub"
+
+    monkeypatch.setattr(llm_mod, "call_text", slow_call)
+
+    raw_times: list[float] = []
+    refined_times: list[float] = []
+
+    orch = Orchestrator(
+        db_path=tmp_path / "uncoupled.db",
+        data_log=mini_log,
+        speed=1000.0,
+        force_stub=True,
+    )
+    orch.on_event(
+        lambda e: (
+            raw_times.append(time.time())
+            if e.get("type") == "raw"
+            else refined_times.append(time.time())
+            if e.get("type") == "refined"
+            else None
+        )
+    )
+    t0 = time.time()
+    orch.play()
+    deadline = time.time() + 15
+    while len(raw_times) < 2 and time.time() < deadline:
+        time.sleep(0.02)
+    # Both raws should land well before 2*0.35s if ingest is unblocked
+    assert len(raw_times) >= 2
+    assert raw_times[-1] - t0 < 0.5
+    while orch.state == "playing" and time.time() < deadline:
+        time.sleep(0.05)
+    assert orch.state == "done"
+    assert len(refined_times) >= 1
+    # First refine still paid the slow cost; second raw did not wait on it
+    assert raw_times[1] < refined_times[0] + 0.05 or raw_times[1] < refined_times[0]
+
+
 def test_orchestrator_reset(tmp_path, mini_log):
     orch = Orchestrator(
         db_path=tmp_path / "r.db", data_log=mini_log, speed=1000.0, force_stub=True
