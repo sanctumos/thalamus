@@ -18,6 +18,10 @@ from typing import Any, Dict, List
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 from . import llm as llm_mod
+from .conversations import (
+    conversations_payload,
+    resolve_conversation,
+)
 from .llm import active_model, load_venice_key, set_secrets_db_path
 from .model_catalog import is_whitelisted, settings_models_payload
 from .orchestrator import Orchestrator
@@ -28,6 +32,22 @@ from .secrets_store import (
     secret_present,
     set_secret,
 )
+from .p2_filters import (
+    decide_review,
+    evaluate_review,
+    get_filter_pack,
+    get_review,
+    get_settings as p2_get_settings,
+    get_topic_state,
+    list_filter_packs,
+    list_filter_rules,
+    list_refine_passes,
+    list_reviews,
+    patch_filter_pack,
+    patch_filter_rule,
+    patch_settings as p2_patch_settings,
+    seed_default_pack,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,12 +56,24 @@ ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
 DATA_DIR = Path(os.environ.get("THALAMUS_WEB_DATA", str(ROOT / "data")))
 DB_PATH = Path(os.environ.get("THALAMUS_WEB_DB", str(DATA_DIR / "web_replay.db")))
-DATA_LOG = Path(
-    os.environ.get(
-        "THALAMUS_WEB_DATA_LOG",
-        str(ROOT.parent / "raw_data_log.json"),
-    )
-)
+
+
+def _boot_conversation():
+    env_log = os.environ.get("THALAMUS_WEB_DATA_LOG", "").strip()
+    env_cid = os.environ.get("THALAMUS_WEB_CONVERSATION", "").strip()
+    if env_log:
+        path = Path(env_log)
+        cid = env_cid or path.stem
+        return cid, path
+    try:
+        row = resolve_conversation(env_cid or None)
+        return row["id"], Path(row["path"])
+    except (KeyError, FileNotFoundError):
+        fallback = ROOT.parent / "raw_data_log.json"
+        return "cochlea-10min-committee", fallback
+
+
+_BOOT_CID, DATA_LOG = _boot_conversation()
 
 app = Flask(__name__, static_folder=str(STATIC), static_url_path="/static")
 
@@ -53,6 +85,7 @@ set_secrets_db_path(DB_PATH)
 orch = Orchestrator(
     db_path=DB_PATH,
     data_log=DATA_LOG,
+    conversation_id=_BOOT_CID,
     speed=float(os.environ.get("THALAMUS_WEB_SPEED", "1.0")),
     force_stub=os.environ.get("THALAMUS_WEB_FORCE_STUB", "1").strip().lower()
     in ("1", "true", "yes", ""),
@@ -81,6 +114,7 @@ def _settings_payload() -> Dict[str, Any]:
         "venice_key_present": bool(load_venice_key()),
     }
     payload.update(settings_models_payload(selected))
+    payload.update(conversations_payload(orch.conversation_id))
     return payload
 
 
@@ -89,6 +123,7 @@ def create_app(
     data_log: Path | None = None,
     speed: float = 1000.0,
     force_stub: bool = True,
+    conversation_id: str | None = None,
 ) -> Flask:
     """Factory for tests."""
     global orch, DB_PATH, DATA_LOG
@@ -96,9 +131,20 @@ def create_app(
         DB_PATH = Path(db_path)
     if data_log is not None:
         DATA_LOG = Path(data_log)
+        cid = conversation_id or Path(data_log).stem
+    elif conversation_id:
+        row = resolve_conversation(conversation_id)
+        DATA_LOG = Path(row["path"])
+        cid = row["id"]
+    else:
+        cid = conversation_id or _BOOT_CID
     set_secrets_db_path(DB_PATH)
     orch = Orchestrator(
-        db_path=DB_PATH, data_log=DATA_LOG, speed=speed, force_stub=force_stub
+        db_path=DB_PATH,
+        data_log=DATA_LOG,
+        conversation_id=cid,
+        speed=speed,
+        force_stub=force_stub,
     )
     orch.on_event(_broadcast)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -136,13 +182,20 @@ def controls():
     """Defaults the web control surface should show."""
     return jsonify(
         {
-            "speed": orch.speed,
+            # Speed is a UI Play param — always advertise 1.0 so hydrate never
+            # inherits a leftover orch.speed from a prior smoke/test run.
+            "speed": 1.0,
             "force_stub": orch.force_stub,
             "llm_mode": orch.llm_mode,
             "state": orch.state,
             **_settings_payload(),
         }
     )
+
+
+@app.get("/api/conversations")
+def get_conversations():
+    return jsonify(conversations_payload(orch.conversation_id))
 
 
 @app.get("/api/settings")
@@ -194,18 +247,201 @@ def reset():
 def play():
     body = request.get_json(silent=True) or {}
     if "speed" in body and body["speed"] is not None:
-        orch.speed = float(body["speed"])
+        try:
+            speed = float(body["speed"])
+        except (TypeError, ValueError):
+            speed = 1.0
+        # UI default is 1.0; reject nonsense / leftover test values
+        if speed <= 0 or speed > 1000:
+            speed = 1.0
+        orch.speed = speed
     if "force_stub" in body and body["force_stub"] is not None:
         orch.force_stub = bool(body["force_stub"])
+    if "conversation_id" in body and body.get("conversation_id") is not None:
+        cid = str(body.get("conversation_id") or "").strip()
+        if cid:
+            try:
+                row = resolve_conversation(cid)
+            except KeyError as e:
+                return jsonify({"ok": False, "error": str(e), **orch.status()}), 400
+            except FileNotFoundError as e:
+                return jsonify({"ok": False, "error": str(e), **orch.status()}), 400
+            orch.set_conversation(row["id"], Path(row["path"]))
+            global DATA_LOG
+            DATA_LOG = Path(row["path"])
     return jsonify(orch.play())
 
 
 @app.post("/api/stop")
 def stop():
     orch.stop()
-    if orch.state not in ("done", "error"):
+    if orch.state not in ("done", "error", "idle"):
         orch.state = "stopped"
     return jsonify(orch.status())
+
+
+def _doctor_db():
+    return orch.ensure_db()
+
+
+@app.get("/api/doctor/settings")
+def doctor_get_settings():
+    db = _doctor_db()
+    return jsonify({"ok": True, "settings": p2_get_settings(db)})
+
+
+@app.patch("/api/doctor/settings")
+def doctor_patch_settings():
+    db = _doctor_db()
+    body = request.get_json(silent=True) or {}
+    settings = p2_patch_settings(db, body)
+    return jsonify({"ok": True, "settings": settings})
+
+
+@app.get("/api/doctor/filter-packs")
+def doctor_list_packs():
+    db = _doctor_db()
+    packs = list_filter_packs(db)
+    out = []
+    for p in packs:
+        rules = list_filter_rules(db, int(p["id"]))
+        out.append({**p, "rules": rules})
+    return jsonify({"ok": True, "packs": out})
+
+
+@app.get("/api/doctor/filter-packs/<int:pack_id>")
+def doctor_get_pack(pack_id: int):
+    db = _doctor_db()
+    pack = get_filter_pack(db, pack_id=pack_id)
+    if not pack:
+        return jsonify({"ok": False, "error": "pack not found"}), 404
+    pack = {**pack, "rules": list_filter_rules(db, pack_id)}
+    return jsonify({"ok": True, "pack": pack})
+
+
+@app.patch("/api/doctor/filter-packs/<int:pack_id>")
+def doctor_patch_pack(pack_id: int):
+    db = _doctor_db()
+    body = request.get_json(silent=True) or {}
+    pack = patch_filter_pack(db, pack_id, body)
+    if not pack:
+        return jsonify({"ok": False, "error": "pack not found"}), 404
+    pack = {**pack, "rules": list_filter_rules(db, pack_id)}
+    return jsonify({"ok": True, "pack": pack})
+
+
+@app.patch("/api/doctor/filter-rules/<int:rule_id>")
+def doctor_patch_rule(rule_id: int):
+    db = _doctor_db()
+    body = request.get_json(silent=True) or {}
+    rule = patch_filter_rule(db, rule_id, body)
+    if not rule:
+        return jsonify({"ok": False, "error": "rule not found"}), 404
+    return jsonify({"ok": True, "rule": rule})
+
+
+@app.post("/api/doctor/seed")
+def doctor_seed():
+    db = _doctor_db()
+    body = request.get_json(silent=True) or {}
+    force = bool(body.get("force_rules"))
+    result = seed_default_pack(db, force_rules=force)
+    return jsonify({"ok": True, **result, "settings": p2_get_settings(db)})
+
+
+@app.get("/api/doctor/reviews")
+def doctor_list_reviews():
+    db = _doctor_db()
+    status = request.args.get("status")
+    return jsonify({"ok": True, "reviews": list_reviews(db, status=status)})
+
+
+@app.get("/api/doctor/reviews/<int:review_id>")
+def doctor_get_review(review_id: int):
+    db = _doctor_db()
+    rev = get_review(db, review_id)
+    if not rev:
+        return jsonify({"ok": False, "error": "review not found"}), 404
+    return jsonify({"ok": True, "review": rev})
+
+
+@app.get("/api/doctor/refine-passes")
+def doctor_list_refine_passes():
+    db = _doctor_db()
+    return jsonify({"ok": True, "passes": list_refine_passes(db)})
+
+
+@app.get("/api/doctor/topic-state")
+def doctor_topic_state():
+    db = _doctor_db()
+    return jsonify({"ok": True, "topic_state": get_topic_state(db)})
+
+
+@app.post("/api/doctor/reviews/<int:review_id>/evaluate")
+def doctor_evaluate_review(review_id: int):
+    """Run internal Thalamus evaluator (not HITL)."""
+    db = _doctor_db()
+    try:
+        rev = evaluate_review(db, review_id)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    escalate = bool(
+        rev.get("escalate")
+        if "escalate" in rev
+        else rev.get("status") == "escalated"
+    )
+    if orch.p2_scorer is not None and rev.get("status") in (
+        "escalated",
+        "declined",
+    ):
+        orch.p2_scorer.on_review_decided(escalate)
+    orch._emit(
+        {
+            "type": "p2_review",
+            "review": rev,
+            "decided": True,
+            "escalate": escalate,
+        }
+    )
+    return jsonify({"ok": True, "review": rev})
+
+
+@app.post("/api/doctor/reviews/<int:review_id>/decide")
+def doctor_decide_review(review_id: int):
+    """Doctor override — normal path is /evaluate (auto). Kept for tooling."""
+    db = _doctor_db()
+    body = request.get_json(silent=True) or {}
+    if "escalate" not in body:
+        return jsonify({"ok": False, "error": "escalate bool required"}), 400
+    escalate = bool(body.get("escalate"))
+    note = str(body.get("note") or "doctor override")
+    if not note.startswith("["):
+        note = f"[doctor_override] {note}"
+    rev = decide_review(db, review_id, escalate=escalate, note=note)
+    if not rev:
+        return jsonify({"ok": False, "error": "review not found"}), 404
+    if orch.p2_scorer is not None:
+        orch.p2_scorer.on_review_decided(escalate)
+    orch._emit(
+        {
+            "type": "console",
+            "level": "INFO",
+            "message": (
+                f"P2 review #{review_id} "
+                f"{'escalated' if escalate else 'declined'} (override)"
+                + (f" — {note}" if note else "")
+            ),
+        }
+    )
+    orch._emit(
+        {
+            "type": "p2_review",
+            "review": rev,
+            "decided": True,
+            "escalate": escalate,
+        }
+    )
+    return jsonify({"ok": True, "review": rev})
 
 
 @app.get("/api/events")

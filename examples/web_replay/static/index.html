@@ -4,17 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Thalamus — Omi streaming replay</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=p2-ui-5" />
 </head>
 <body>
   <header class="top">
-    <div>
+    <div class="top-brand">
       <h1>Thalamus</h1>
-      <p class="sub">Omi streaming replay · Path A · real DB layers</p>
+      <p class="sub">Omi streaming replay · Path A · P0 → P1 → P2</p>
     </div>
     <div class="controls" id="controls">
+      <label class="ctl ctl-convo">Conversation
+        <select id="conversation" title="Which Cochlea NDJSON feed to stream on Play"></select>
+      </label>
       <label class="ctl">Speed
-        <input id="speed" type="number" min="0.1" step="0.1" value="1" title="1.0 = real log_timestamp deltas" />
+        <input id="speed" type="number" min="0.1" max="1000" step="0.1" value="1" title="1.0 = real log_timestamp deltas" />
       </label>
       <label class="ctl">Refine
         <select id="refine-mode" title="Stub is local; Venice hits api.venice.ai">
@@ -28,21 +31,33 @@
       <button id="btn-menu" type="button" class="btn-menu" aria-haspopup="dialog" aria-controls="settings-dialog" title="Settings">Menu</button>
       <span id="badge" class="badge">idle</span>
       <span id="key-badge" class="badge muted" title="Venice API key in demo DB">key: …</span>
+      <span id="p2-badge" class="badge muted" title="P2 filter score">P2: 0</span>
     </div>
   </header>
 
   <main class="grid">
     <section class="pane" id="pane-raw">
-      <h2>Raw / Cochlea</h2>
+      <h2><span class="tier">P0</span> Raw / Cochlea</h2>
       <div class="pane-body" id="raw"></div>
     </section>
     <section class="pane" id="pane-refined">
-      <h2>Refined / Thalamus</h2>
+      <h2><span class="tier">P1</span> Refined / Thalamus</h2>
       <div class="pane-body" id="refined"></div>
     </section>
-    <section class="pane" id="pane-prov">
-      <h2>Provenance</h2>
-      <div class="pane-body" id="provenance"></div>
+    <section class="pane" id="pane-p2">
+      <h2><span class="tier">P2</span> Refine / Breaker <span id="p2-breaker-badge" class="badge muted" title="Home-topic breaker">breaker: —</span></h2>
+      <!-- Provenance pane hidden for now (troubleshooting); keep #provenance for optional revive -->
+      <div class="pane-body provenance-hidden" id="provenance" hidden aria-hidden="true"></div>
+      <div class="p2-tabs" role="tablist">
+        <button type="button" class="p2-tab active" data-p2tab="refine" role="tab" aria-selected="true">Refine</button>
+        <button type="button" class="p2-tab" data-p2tab="review" role="tab" aria-selected="false" id="p2-tab-review">Review</button>
+      </div>
+      <div class="pane-body" id="p2-pane">
+        <p class="p2-idle muted">Waiting for Play — filter factoids accumulate here; an internal evaluator auto-decides escalate.</p>
+      </div>
+      <div class="pane-body" id="p2-review-pane" hidden>
+        <p class="p2-idle muted">No review yet — after escalate, the trip receipt parks here.</p>
+      </div>
     </section>
     <section class="pane" id="pane-console">
       <h2>Console</h2>
@@ -51,32 +66,115 @@
   </main>
 
   <dialog id="settings-dialog" class="settings-dialog">
-    <form method="dialog" class="settings-panel">
+    <div class="settings-panel">
       <header class="settings-head">
         <h2>Settings</h2>
-        <button id="btn-close-settings" type="submit" class="btn-muted" value="cancel">Close</button>
+        <button id="btn-close-settings" type="button" class="btn-muted">Close</button>
       </header>
-      <p class="settings-note">Secrets and refine model live in SQLite <code>app_secrets</code> (survive Play/Reset). Only lab-whitelisted models (≥85% pass) appear below — score and relative cost from the last model ladder.</p>
-      <div class="settings-row">
-        <label class="ctl grow">Refine model (Thalamus pane)
-          <select id="venice-model"></select>
-        </label>
+      <div class="settings-tabs" role="tablist">
+        <button type="button" class="settings-tab active" role="tab" data-tab="venice" aria-selected="true">Venice / P1</button>
+        <button type="button" class="settings-tab" role="tab" data-tab="p2" aria-selected="false">P2 filter</button>
       </div>
-      <p id="model-meta" class="settings-meta muted"></p>
-      <div class="settings-row">
-        <label class="ctl grow">Venice API key
-          <input id="venice-key" type="password" autocomplete="off" spellcheck="false"
-                 placeholder="Paste key — shown as ••••" />
-        </label>
+
+      <div class="settings-tab-panel" id="tab-venice" role="tabpanel">
+        <p class="settings-note">Secrets and refine model live in SQLite <code>app_secrets</code> (survive Play/Reset). Lab-whitelisted models only (≥85% pass).</p>
+        <div class="settings-row">
+          <label class="ctl grow">Refine model (P1 pane)
+            <select id="venice-model"></select>
+          </label>
+        </div>
+        <p id="model-meta" class="settings-meta muted"></p>
+        <div class="settings-row">
+          <label class="ctl grow">Venice API key
+            <input id="venice-key" type="password" autocomplete="off" spellcheck="false"
+                   placeholder="Paste key — shown as ••••" />
+          </label>
+        </div>
+        <div class="settings-actions">
+          <button id="btn-save-settings" type="button">Save</button>
+          <button id="btn-clear-key" type="button" class="btn-muted">Clear key</button>
+          <span id="key-hint" class="badge muted"></span>
+        </div>
       </div>
-      <div class="settings-actions">
-        <button id="btn-save-settings" type="button">Save</button>
-        <button id="btn-clear-key" type="button" class="btn-muted">Clear key</button>
-        <span id="key-hint" class="badge muted"></span>
+
+      <div class="settings-tab-panel" id="tab-p2" role="tabpanel" hidden>
+        <p class="settings-note">
+          Doctor-tunable <strong>non-LLM</strong> rules accumulate evidence.
+          A greeting alone does <strong>not</strong> tip — need cumulative score
+          (≥ threshold) <em>and</em> ops substance (tasking / project nouns).
+          Then an <strong>internal Thalamus evaluator</strong> auto-decides escalate.
+        </p>
+        <div class="settings-row">
+          <label class="ctl grow">Active pack
+            <input id="p2-pack-title" type="text" readonly />
+          </label>
+        </div>
+        <div class="settings-row settings-row-inline">
+          <label class="ctl">Trip threshold
+            <input id="p2-threshold" type="number" min="1" max="50" step="0.5" />
+          </label>
+          <label class="ctl">Score decay / segment
+            <input id="p2-decay" type="number" min="0" max="5" step="0.05" />
+          </label>
+        </div>
+        <div class="settings-row settings-row-inline">
+          <label class="ctl">Evaluator mode
+            <select id="p2-eval-mode" title="auto = Venice when key present, else heuristic">
+              <option value="auto">auto (Venice if key)</option>
+              <option value="venice">venice</option>
+              <option value="heuristic">heuristic (no LLM)</option>
+            </select>
+          </label>
+          <label class="ctl grow">Evaluator model
+            <select id="p2-eval-model" title="Empty/default uses P1 refine model">
+              <option value="">(same as P1 refine)</option>
+            </select>
+          </label>
+        </div>
+        <div class="settings-row">
+          <label class="ctl grow">Project card (evaluator context)
+            <textarea id="p2-project-card" rows="3" spellcheck="false"
+              placeholder="Tiny project context for the evaluator…"></textarea>
+          </label>
+        </div>
+        <p class="settings-meta muted">Pack: <code id="p2-pack-slug">—</code> · enrichment gate: <code id="p2-gate">off</code> · auto-eval: <code id="p2-auto">on</code></p>
+        <h3 class="settings-subh">P2 refine + home-topic breaker</h3>
+        <div class="settings-row settings-row-inline">
+          <label class="ctl">Refine every N turns
+            <input id="p2-refine-every" type="number" min="1" max="50" step="1" />
+          </label>
+          <label class="ctl">Max window segments
+            <input id="p2-refine-max" type="number" min="10" max="400" step="10" />
+          </label>
+        </div>
+        <div class="settings-row settings-row-inline">
+          <label class="ctl">Breaker off score
+            <input id="p2-breaker-off" type="number" min="0" max="1" step="0.02" />
+          </label>
+          <label class="ctl">Breaker on score
+            <input id="p2-breaker-on" type="number" min="0" max="1" step="0.02" />
+          </label>
+        </div>
+        <div class="settings-row settings-row-inline">
+          <label class="ctl">Off streak (batches)
+            <input id="p2-breaker-off-streak" type="number" min="1" max="10" step="1" />
+          </label>
+          <label class="ctl">On streak (batches)
+            <input id="p2-breaker-on-streak" type="number" min="1" max="10" step="1" />
+          </label>
+        </div>
+        <p class="settings-meta muted">Breaker: <code id="p2-breaker-enabled">on</code> · refine model: <code id="p2-refine-model-label">(P1)</code></p>
+        <h3 class="settings-subh">Rules (weights flip P2)</h3>
+        <div id="p2-rules-list" class="p2-rules-list muted">Loading…</div>
+        <div class="settings-actions">
+          <button id="btn-save-p2" type="button">Save P2 settings</button>
+          <button id="btn-reseed-p2" type="button" class="btn-muted">Re-seed pack</button>
+          <span id="p2-save-hint" class="badge muted"></span>
+        </div>
       </div>
-    </form>
+    </div>
   </dialog>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=p2-ui-5"></script>
 </body>
 </html>
