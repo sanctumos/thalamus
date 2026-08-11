@@ -10,19 +10,26 @@
   const refineEl = $("refine-mode");
 
   function append(el, html) {
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
     const div = document.createElement("div");
     div.className = "row";
     div.innerHTML = html;
     el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
   }
 
   function log(level, message) {
+    const nearBottom =
+      consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight < 48;
     const line = document.createElement("div");
     line.className = `console-line ${level || "INFO"}`;
     line.textContent = `[${level || "INFO"}] ${message}`;
     consoleEl.appendChild(line);
-    consoleEl.scrollTop = consoleEl.scrollHeight;
+    if (nearBottom) consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  function stickBottom(el) {
+    el.scrollTop = el.scrollHeight;
   }
 
   function setBadge(state, llmMode) {
@@ -132,6 +139,9 @@
         `<div class="meta">raw ${r.raw_segment_id} → refined ${r.refined_segment_id}</div>`
       );
     }
+    stickBottom(rawEl);
+    stickBottom(refinedEl);
+    stickBottom(provEl);
   }
 
   function clearPanes() {
