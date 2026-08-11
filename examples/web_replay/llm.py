@@ -86,7 +86,7 @@ def _strip_assistant_chrome(text: str) -> str:
     ):
         low = out.lower()
         if low.startswith(prefix):
-            out = out[len(prefix) :].lstrip(" \n:\"'")
+            out = out[len(prefix) :].lstrip(" \n:")
             break
     if (out.startswith('"') and out.endswith('"')) or (
         out.startswith("'") and out.endswith("'")
