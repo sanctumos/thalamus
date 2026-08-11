@@ -19,4 +19,12 @@ export THALAMUS_WEB_FORCE_STUB="${THALAMUS_WEB_FORCE_STUB:-1}"
 export PYTHONPATH="$EXAMPLES${PYTHONPATH:+:$PYTHONPATH}"
 
 mkdir -p "$THALAMUS_WEB_DATA"
-exec python3 -m web_replay.server
+
+REPO_ROOT="$(cd "$EXAMPLES/.." && pwd)"
+PY=python3
+if [[ -x "$REPO_ROOT/.venv/bin/python3" ]]; then
+  PY="$REPO_ROOT/.venv/bin/python3"
+elif [[ -x "$ROOT/.venv/bin/python3" ]]; then
+  PY="$ROOT/.venv/bin/python3"
+fi
+exec "$PY" -m web_replay.server
