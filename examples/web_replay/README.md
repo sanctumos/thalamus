@@ -18,9 +18,11 @@ Env:
 | Var | Default | Meaning |
 |-----|---------|---------|
 | `THALAMUS_WEB_PORT` | `8787` | Bind port |
-| `THALAMUS_WEB_SPEED` | `1.0` | Time-sim speed (UI Play can override) |
-| `THALAMUS_WEB_FORCE_STUB` | `1` | Stub refine (set `0` + Venice key for live LLM) |
-| `VENICE_API_KEY` | from `~/.ssh/venice.pass` | Venice inference |
+| `THALAMUS_WEB_SPEED` | `1.0` | Initial speed only — Play uses the UI control |
+| `THALAMUS_WEB_FORCE_STUB` | `1` | Initial refine mode only — Play uses the UI Refine select |
+| `VENICE_API_KEY` | from `~/.ssh/venice.pass` | Required when Refine = Venice |
+
+**Web controls (source of truth for a Play run):** Speed (`1.0` = real-time), Refine (Stub / Venice), Play / Reset / Stop. Badge shows key presence.
 
 Access is **open during dev**.
 
