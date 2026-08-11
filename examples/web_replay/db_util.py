@@ -30,19 +30,41 @@ def load_database(db_path: Path):
 
 
 def reset_db(db_path: Path):
-    if db_path.exists():
-        db_path.unlink()
+    """Wipe demo replay tables only — preserve app_secrets across Play/Reset."""
+    db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = load_database(db_path)
     db.init_db()
+    from .secrets_store import ensure_secrets_table
+
+    ensure_secrets_table(db)
+    with db.get_db() as conn:
+        conn.execute("DELETE FROM segment_usage")
+        conn.execute("DELETE FROM refined_segments")
+        conn.execute("DELETE FROM raw_segments")
+        conn.execute("DELETE FROM speakers")
+        conn.execute("DELETE FROM sessions")
+        # Reset autoincrement counters for demo tables if present
+        try:
+            conn.execute(
+                "DELETE FROM sqlite_sequence WHERE name IN "
+                "('segment_usage','refined_segments','raw_segments','speakers','sessions')"
+            )
+        except Exception:
+            pass
+        conn.commit()
     return db
 
 
 def open_db(db_path: Path):
     """Open existing demo DB (or create empty schema) without wiping rows."""
+    db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = load_database(db_path)
     db.init_db()
+    from .secrets_store import ensure_secrets_table
+
+    ensure_secrets_table(db)
     return db
 
 

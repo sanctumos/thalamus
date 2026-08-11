@@ -26,9 +26,23 @@
       <button id="btn-reset" type="button">Reset</button>
       <button id="btn-stop" type="button">Stop</button>
       <span id="badge" class="badge">idle</span>
-      <span id="key-badge" class="badge muted" title="Venice API key on server">key: …</span>
+      <span id="key-badge" class="badge muted" title="Venice API key in demo DB">key: …</span>
     </div>
   </header>
+
+  <section class="settings" id="settings">
+    <h2>Settings</h2>
+    <p class="settings-note">Secrets live in the demo SQLite DB (<code>app_secrets</code>) and survive Play/Reset. Never stored in <code>.pass</code> files for this app.</p>
+    <div class="settings-row">
+      <label class="ctl grow">Venice API key
+        <input id="venice-key" type="password" autocomplete="off" spellcheck="false"
+               placeholder="Paste key — shown as ••••" />
+      </label>
+      <button id="btn-save-settings" type="button">Save key</button>
+      <button id="btn-clear-key" type="button" class="btn-muted">Clear</button>
+      <span id="key-hint" class="badge muted"></span>
+    </div>
+  </section>
 
   <main class="grid">
     <section class="pane" id="pane-raw">

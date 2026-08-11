@@ -17,8 +17,10 @@ from typing import Any, Dict, List
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 
+from . import llm as llm_mod
+from .llm import load_venice_key, set_secrets_db_path
 from .orchestrator import Orchestrator
-from .llm import load_venice_key
+from .secrets_store import VENICE_KEY_NAME, secret_hint, secret_present, set_secret
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +40,8 @@ app = Flask(__name__, static_folder=str(STATIC), static_url_path="/static")
 
 _subscribers: List[queue.Queue] = []
 _sub_lock = threading.Lock()
+
+set_secrets_db_path(DB_PATH)
 
 orch = Orchestrator(
     db_path=DB_PATH,
@@ -62,6 +66,14 @@ def _broadcast(event: Dict[str, Any]) -> None:
 orch.on_event(_broadcast)
 
 
+def _settings_payload() -> Dict[str, Any]:
+    return {
+        "venice_api_key_set": secret_present(DB_PATH, VENICE_KEY_NAME),
+        "venice_api_key_hint": secret_hint(DB_PATH, VENICE_KEY_NAME),
+        "venice_key_present": bool(load_venice_key()),
+    }
+
+
 def create_app(
     db_path: Path | None = None,
     data_log: Path | None = None,
@@ -74,6 +86,7 @@ def create_app(
         DB_PATH = Path(db_path)
     if data_log is not None:
         DATA_LOG = Path(data_log)
+    set_secrets_db_path(DB_PATH)
     orch = Orchestrator(
         db_path=DB_PATH, data_log=DATA_LOG, speed=speed, force_stub=force_stub
     )
@@ -96,7 +109,7 @@ def health():
             "state": orch.state,
             "llm_mode": orch.llm_mode,
             "force_stub": orch.force_stub,
-            "venice_key_present": bool(load_venice_key()),
+            **_settings_payload(),
         }
     )
 
@@ -104,7 +117,7 @@ def health():
 @app.get("/api/status")
 def status():
     payload = orch.status()
-    payload["venice_key_present"] = bool(load_venice_key())
+    payload.update(_settings_payload())
     return jsonify(payload)
 
 
@@ -115,11 +128,33 @@ def controls():
         {
             "speed": orch.speed,
             "force_stub": orch.force_stub,
-            "venice_key_present": bool(load_venice_key()),
             "llm_mode": orch.llm_mode,
             "state": orch.state,
+            **_settings_payload(),
         }
     )
+
+
+@app.get("/api/settings")
+def get_settings():
+    return jsonify(_settings_payload())
+
+
+@app.post("/api/settings")
+def post_settings():
+    """Save secrets into app_secrets (survives Play/Reset). Never echo raw key."""
+    body = request.get_json(silent=True) or {}
+    if "venice_api_key" in body:
+        raw = body.get("venice_api_key")
+        if raw is None:
+            raw = ""
+        # Empty string clears; whitespace-only treated as clear
+        set_secret(DB_PATH, VENICE_KEY_NAME, str(raw))
+        logger.info(
+            "Venice API key %s in app_secrets",
+            "updated" if str(raw).strip() else "cleared",
+        )
+    return jsonify(_settings_payload())
 
 
 @app.post("/api/reset")
@@ -178,6 +213,7 @@ def events_sse():
 
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    set_secrets_db_path(DB_PATH)
     # Do not wipe on boot — reload should show progress-so-far until Reset/Play
     orch.ensure_db()
     host = os.environ.get("THALAMUS_WEB_HOST", "0.0.0.0")

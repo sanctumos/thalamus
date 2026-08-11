@@ -73,13 +73,56 @@ button#btn-reset, button#btn-stop { background: #334155; color: var(--text); }
 .badge.muted { color: var(--muted); }
 .badge.ok { color: var(--accent); border-color: #2a5a52; }
 
+.settings {
+  margin: 0;
+  padding: 0.75rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.15);
+}
+.settings h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+.settings-note {
+  margin: 0 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  max-width: 52rem;
+}
+.settings-note code { color: var(--text); }
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+.settings-row .ctl.grow { flex: 1 1 16rem; }
+.settings-row input[type="password"] {
+  width: 100%;
+  min-width: 12rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 0.4rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+}
+button.btn-muted, #btn-clear-key {
+  background: #334155;
+  color: var(--text);
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 0.75rem;
   padding: 0.75rem;
-  min-height: calc(100vh - 5.5rem);
+  min-height: calc(100vh - 11rem);
 }
 @media (max-width: 800px) {
   .grid { grid-template-columns: 1fr; grid-template-rows: auto; }

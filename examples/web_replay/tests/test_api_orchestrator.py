@@ -108,22 +108,63 @@ def test_load_venice_key_from_env(monkeypatch):
     assert load_venice_key() == "env-key"
 
 
-def test_load_venice_key_from_passfile(tmp_path, monkeypatch):
+def test_load_venice_key_from_db(tmp_path, monkeypatch):
     monkeypatch.delenv("VENICE_API_KEY", raising=False)
     monkeypatch.delenv("VENICE_INFERENCE_KEY", raising=False)
-    ssh = tmp_path / ".ssh"
-    ssh.mkdir()
-    (ssh / "venice.pass").write_text(
-        "# comment\n\nVENICE_API_KEY=pass-key\n", encoding="utf-8"
+    db_path = tmp_path / "sec.db"
+    from web_replay.secrets_store import VENICE_KEY_NAME, set_secret
+    from web_replay.llm import set_secrets_db_path
+
+    set_secret(db_path, VENICE_KEY_NAME, "db-stored-key")
+    set_secrets_db_path(db_path)
+    assert load_venice_key() == "db-stored-key"
+
+
+def test_secrets_survive_reset(tmp_path, mini_log):
+    from web_replay.secrets_store import VENICE_KEY_NAME, get_secret, set_secret
+
+    db_path = tmp_path / "survive.db"
+    set_secret(db_path, VENICE_KEY_NAME, "keep-me-secret")
+    orch = Orchestrator(
+        db_path=db_path, data_log=mini_log, speed=1000.0, force_stub=True
     )
-    monkeypatch.setattr(llm_mod.Path, "home", classmethod(lambda cls: tmp_path))
-    assert load_venice_key() == "pass-key"
+    orch.play()
+    deadline = time.time() + 10
+    while orch.state == "playing" and time.time() < deadline:
+        time.sleep(0.05)
+    orch.reset()
+    assert get_secret(db_path, VENICE_KEY_NAME) == "keep-me-secret"
+    assert orch.status()["counts"]["raw"] == 0
+
+
+def test_settings_api_masks_key(tmp_path, mini_log):
+    app = create_app(
+        db_path=tmp_path / "set.db",
+        data_log=mini_log,
+        speed=1000.0,
+        force_stub=True,
+    )
+    app.config["TESTING"] = True
+    client = app.test_client()
+    r = client.post(
+        "/api/settings",
+        json={"venice_api_key": "super-secret-token-abcd"},
+    )
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["venice_api_key_set"] is True
+    assert body["venice_api_key_hint"].startswith("••••")
+    assert "super-secret" not in json.dumps(body)
+    g = client.get("/api/settings").get_json()
+    assert g["venice_api_key_hint"].endswith("abcd")
 
 
 def test_load_venice_key_missing(monkeypatch, tmp_path):
     monkeypatch.delenv("VENICE_API_KEY", raising=False)
     monkeypatch.delenv("VENICE_INFERENCE_KEY", raising=False)
-    monkeypatch.setattr(llm_mod.Path, "home", classmethod(lambda cls: tmp_path))
+    from web_replay.llm import set_secrets_db_path
+
+    set_secrets_db_path(tmp_path / "empty-missing.db")
     assert load_venice_key() is None
 
 
@@ -147,7 +188,9 @@ def test_venice_refine_success(monkeypatch):
 def test_venice_refine_no_key(monkeypatch, tmp_path):
     monkeypatch.delenv("VENICE_API_KEY", raising=False)
     monkeypatch.delenv("VENICE_INFERENCE_KEY", raising=False)
-    monkeypatch.setattr(llm_mod.Path, "home", classmethod(lambda cls: tmp_path))
+    from web_replay.llm import set_secrets_db_path
+
+    set_secrets_db_path(tmp_path / "empty-nokey.db")
     with pytest.raises(RuntimeError):
         venice_refine("x")
 

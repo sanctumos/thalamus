@@ -20,23 +20,27 @@ logger = logging.getLogger(__name__)
 VENICE_BASE = "https://api.venice.ai/api/v1"
 DEFAULT_MODEL = os.environ.get("VENICE_MODEL", "llama-3.3-70b")
 
+# Set by server/orchestrator — secrets live in the demo SQLite DB.
+_secrets_db_path: Optional[Path] = None
+
+
+def set_secrets_db_path(path: Optional[Path]) -> None:
+    global _secrets_db_path
+    _secrets_db_path = Path(path) if path is not None else None
+
 
 def load_venice_key() -> Optional[str]:
+    """Prefer app_secrets in the demo DB; env only as bootstrap fallback."""
+    if _secrets_db_path is not None:
+        from .secrets_store import VENICE_KEY_NAME, get_secret
+
+        v = get_secret(_secrets_db_path, VENICE_KEY_NAME)
+        if v:
+            return v
     for name in ("VENICE_API_KEY", "VENICE_INFERENCE_KEY"):
         v = os.environ.get(name, "").strip()
         if v:
             return v
-    pass_path = Path.home() / ".ssh" / "venice.pass"
-    if pass_path.exists():
-        for line in pass_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, val = line.split("=", 1)
-            k, val = k.strip(), val.strip().strip("'").strip('"')
-            if k in ("VENICE_API_KEY", "VENICE_INFERENCE_KEY") and val:
-                os.environ.setdefault(k, val)
-                return val
     return None
 
 

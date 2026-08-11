@@ -20,9 +20,11 @@ Env:
 | `THALAMUS_WEB_PORT` | `8787` | Bind port |
 | `THALAMUS_WEB_SPEED` | `1.0` | Initial speed only — Play uses the UI control |
 | `THALAMUS_WEB_FORCE_STUB` | `1` | Initial refine mode only — Play uses the UI Refine select |
-| `VENICE_API_KEY` | from `~/.ssh/venice.pass` | Required when Refine = Venice |
+| `VENICE_API_KEY` | — | Optional bootstrap only; prefer Settings → save into `app_secrets` |
 
-**Web controls (source of truth for a Play run):** Speed (`1.0` = real-time), Refine (Stub / Venice), Play / Reset / Stop. Badge shows key presence.
+**Web controls (source of truth for a Play run):** Speed (`1.0` = real-time), Refine (Stub / Venice), Play / Reset / Stop.
+
+**Settings:** Venice API key is stored in the demo SQLite table `app_secrets` (password field in the UI). Play/Reset wipe replay tables only — the key survives. No `~/.ssh/*.pass` for this app.
 
 Access is **open during dev**.
 

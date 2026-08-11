@@ -4,12 +4,8 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 EXAMPLES="$(cd "$ROOT/.." && pwd)"
 cd "$EXAMPLES"
 
-if [[ -f "${HOME}/.ssh/venice.pass" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "${HOME}/.ssh/venice.pass"
-  set +a
-fi
+# Secrets (Venice key) live in the demo SQLite app_secrets table — set via web Settings.
+# Do not load ~/.ssh/*.pass here.
 
 export THALAMUS_WEB_DATA="${THALAMUS_WEB_DATA:-$ROOT/data}"
 # Server-side defaults only — Play speed / refine mode come from the web UI.

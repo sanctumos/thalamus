@@ -31,10 +31,27 @@
     badge.textContent = parts.join(" · ");
   }
 
-  function setKeyBadge(present) {
-    keyBadge.textContent = present ? "Venice key: yes" : "Venice key: no";
+  function setKeyBadge(present, hint) {
+    if (present) {
+      keyBadge.textContent = hint ? `Venice key: ${hint}` : "Venice key: yes";
+    } else {
+      keyBadge.textContent = "Venice key: no";
+    }
     keyBadge.classList.toggle("ok", !!present);
     keyBadge.classList.toggle("muted", !present);
+    const hintEl = $("key-hint");
+    if (hintEl) {
+      hintEl.textContent = present
+        ? `Stored in DB as ${hint || "••••"}`
+        : "No key in DB";
+      hintEl.classList.toggle("ok", !!present);
+      hintEl.classList.toggle("muted", !present);
+    }
+  }
+
+  function applySettings(d) {
+    const present = !!(d.venice_api_key_set || d.venice_key_present);
+    setKeyBadge(present, d.venice_api_key_hint || "");
   }
 
   function escapeHtml(s) {
@@ -69,8 +86,8 @@
       renderSnapshot(ev);
     } else if (ev.type === "status" || ev.state) {
       setBadge(ev.state, ev.llm_mode);
-      if (typeof ev.venice_key_present === "boolean") {
-        setKeyBadge(ev.venice_key_present);
+      if (typeof ev.venice_key_present === "boolean" || typeof ev.venice_api_key_set === "boolean") {
+        applySettings(ev);
       }
       if (typeof ev.force_stub === "boolean" && document.activeElement !== refineEl) {
         refineEl.value = ev.force_stub ? "stub" : "venice";
@@ -174,6 +191,37 @@
     log("INFO", "Stopped — DB kept; panes show progress so far");
   };
 
+  const veniceKeyEl = $("venice-key");
+
+  $("btn-save-settings").onclick = async () => {
+    const venice_api_key = veniceKeyEl.value;
+    if (!venice_api_key.trim()) {
+      log("WARN", "Paste a key before Save (or use Clear)");
+      return;
+    }
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ venice_api_key }),
+    });
+    const d = await res.json();
+    applySettings(d);
+    veniceKeyEl.value = "";
+    log("INFO", "Venice API key saved to app_secrets (survives Play/Reset)");
+  };
+
+  $("btn-clear-key").onclick = async () => {
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ venice_api_key: "" }),
+    });
+    const d = await res.json();
+    applySettings(d);
+    veniceKeyEl.value = "";
+    log("INFO", "Venice API key cleared from DB");
+  };
+
   function hydrate() {
     return fetch("/api/status")
       .then((r) => r.json())
@@ -183,7 +231,7 @@
           refineEl.value = d.force_stub ? "stub" : "venice";
         }
         setBadge(d.state, d.llm_mode);
-        setKeyBadge(!!d.venice_key_present);
+        applySettings(d);
         if (d.snapshot) renderSnapshot(d.snapshot);
         const n = (d.counts && d.counts.raw) || 0;
         if (n > 0) {
@@ -192,13 +240,18 @@
       });
   }
 
+  fetch("/api/settings")
+    .then((r) => r.json())
+    .then(applySettings)
+    .catch(() => {});
+
   fetch("/api/controls")
     .then((r) => r.json())
     .then((d) => {
       if (typeof d.speed === "number") speedEl.value = String(d.speed);
       refineEl.value = d.force_stub ? "stub" : "venice";
       setBadge(d.state, d.llm_mode);
-      setKeyBadge(!!d.venice_key_present);
+      applySettings(d);
     })
     .catch(() => {})
     .finally(() => {
