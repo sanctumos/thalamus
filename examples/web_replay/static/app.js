@@ -192,8 +192,34 @@
   };
 
   const veniceKeyEl = $("venice-key");
+  const settingsDialog = $("settings-dialog");
+  const btnMenu = $("btn-menu");
 
-  $("btn-save-settings").onclick = async () => {
+  function openSettings() {
+    if (typeof settingsDialog.showModal === "function") {
+      settingsDialog.showModal();
+    } else {
+      settingsDialog.setAttribute("open", "");
+    }
+    btnMenu.setAttribute("aria-expanded", "true");
+    veniceKeyEl.focus();
+  }
+
+  function closeSettings() {
+    if (settingsDialog.open) settingsDialog.close();
+    btnMenu.setAttribute("aria-expanded", "false");
+  }
+
+  btnMenu.onclick = () => {
+    if (settingsDialog.open) closeSettings();
+    else openSettings();
+  };
+  settingsDialog.addEventListener("close", () => {
+    btnMenu.setAttribute("aria-expanded", "false");
+  });
+
+  $("btn-save-settings").onclick = async (e) => {
+    e.preventDefault();
     const venice_api_key = veniceKeyEl.value;
     if (!venice_api_key.trim()) {
       log("WARN", "Paste a key before Save (or use Clear)");
@@ -208,9 +234,11 @@
     applySettings(d);
     veniceKeyEl.value = "";
     log("INFO", "Venice API key saved to app_secrets (survives Play/Reset)");
+    closeSettings();
   };
 
-  $("btn-clear-key").onclick = async () => {
+  $("btn-clear-key").onclick = async (e) => {
+    e.preventDefault();
     const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
