@@ -1,0 +1,102 @@
+:root {
+  --bg: #0e151c;
+  --panel: #17222c;
+  --line: #2a3a48;
+  --text: #e8eef4;
+  --muted: #8fa3b5;
+  --accent: #3db8a8;
+  --warn: #e0a35a;
+  --err: #e06c75;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background: radial-gradient(900px 500px at 0% 0%, #1a2834, var(--bg));
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  align-items: flex-end;
+}
+h1 { margin: 0; font-size: 1.4rem; letter-spacing: -0.02em; }
+.sub { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.controls input {
+  width: 4.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 0.35rem 0.45rem;
+  border-radius: 3px;
+}
+button {
+  background: var(--accent);
+  color: #04201c;
+  border: 0;
+  padding: 0.45rem 0.85rem;
+  border-radius: 3px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button#btn-reset, button#btn-stop { background: #334155; color: var(--text); }
+.badge {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 3px;
+  background: #1e293b;
+  border: 1px solid var(--line);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  min-height: calc(100vh - 5.5rem);
+}
+@media (max-width: 800px) {
+  .grid { grid-template-columns: 1fr; grid-template-rows: auto; }
+}
+
+.pane {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  overflow: hidden;
+}
+.pane h2 {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+}
+.pane-body {
+  padding: 0.6rem 0.75rem;
+  overflow: auto;
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.row {
+  border-bottom: 1px solid #243040;
+  padding: 0.4rem 0;
+}
+.row .meta { color: var(--muted); font-size: 0.75rem; }
+.console-line.ERROR { color: var(--err); }
+.console-line.WARN { color: var(--warn); }

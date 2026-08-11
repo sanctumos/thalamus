@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thalamus — Omi streaming replay</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Thalamus</h1>
+      <p class="sub">Omi streaming replay · Path A · real DB layers</p>
+    </div>
+    <div class="controls">
+      <label>Speed <input id="speed" type="number" min="0.1" step="0.5" value="20" /></label>
+      <button id="btn-play" type="button">Play</button>
+      <button id="btn-reset" type="button">Reset</button>
+      <button id="btn-stop" type="button">Stop</button>
+      <span id="badge" class="badge">idle</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="pane" id="pane-raw">
+      <h2>Raw / Cochlea</h2>
+      <div class="pane-body" id="raw"></div>
+    </section>
+    <section class="pane" id="pane-refined">
+      <h2>Refined / Thalamus</h2>
+      <div class="pane-body" id="refined"></div>
+    </section>
+    <section class="pane" id="pane-prov">
+      <h2>Provenance</h2>
+      <div class="pane-body" id="provenance"></div>
+    </section>
+    <section class="pane" id="pane-console">
+      <h2>Console</h2>
+      <div class="pane-body" id="console"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
