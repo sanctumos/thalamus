@@ -3,10 +3,14 @@ source = web_replay
 omit =
     web_replay/tests/*
     web_replay/__main__.py
+    web_replay/lab_model_ladder.py
+    web_replay/lab_out/*
 
 [report]
 omit =
     web_replay/tests/*
     web_replay/__main__.py
+    web_replay/lab_model_ladder.py
+    web_replay/lab_out/*
 fail_under = 90
 show_missing = True

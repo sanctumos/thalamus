@@ -35,6 +35,19 @@ Access is **open during dev**.
 ./run_slice_tests.sh 1   # time sim + streamer
 ```
 
-## Play semantics
+## Model lab (reusable)
+
+```bash
+# Full paid ladder → refreshes lab_out/refine_model_whitelist.json (≥85% pass)
+cd examples && PYTHONPATH=. python3 -m web_replay.lab_model_ladder
+
+# Offline whitelist schema + Settings API; network catalog check if key present
+pytest web_replay/tests/test_model_whitelist.py -v
+
+# Opt-in paid re-run via pytest
+VENICE_LAB=1 pytest web_replay/tests/test_model_whitelist.py -v -m slow
+```
+
+Settings → **Refine model** dropdown is built from the whitelist (lab score + `$`/`$$`/`$$$` relative cost).
 
 Play **resets** the demo DB, then releases NDJSON events only after each `log_timestamp` wait — not a batch dump. Raw pane ticks as events release; refined pane fills via Venice or stub.

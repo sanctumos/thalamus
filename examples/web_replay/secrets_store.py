@@ -13,6 +13,7 @@ from typing import Optional
 from . import db_util
 
 VENICE_KEY_NAME = "VENICE_API_KEY"
+VENICE_MODEL_NAME = "VENICE_MODEL"
 
 
 def ensure_secrets_table(db) -> None:

@@ -19,8 +19,15 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 
 from . import llm as llm_mod
 from .llm import active_model, load_venice_key, set_secrets_db_path
+from .model_catalog import is_whitelisted, settings_models_payload
 from .orchestrator import Orchestrator
-from .secrets_store import VENICE_KEY_NAME, secret_hint, secret_present, set_secret
+from .secrets_store import (
+    VENICE_KEY_NAME,
+    VENICE_MODEL_NAME,
+    secret_hint,
+    secret_present,
+    set_secret,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,12 +74,14 @@ orch.on_event(_broadcast)
 
 
 def _settings_payload() -> Dict[str, Any]:
-    return {
+    selected = active_model()
+    payload = {
         "venice_api_key_set": secret_present(DB_PATH, VENICE_KEY_NAME),
         "venice_api_key_hint": secret_hint(DB_PATH, VENICE_KEY_NAME),
         "venice_key_present": bool(load_venice_key()),
-        "venice_model": active_model(),
     }
+    payload.update(settings_models_payload(selected))
+    return payload
 
 
 def create_app(
@@ -143,18 +152,36 @@ def get_settings():
 
 @app.post("/api/settings")
 def post_settings():
-    """Save secrets into app_secrets (survives Play/Reset). Never echo raw key."""
+    """Save secrets/settings into app_secrets (survives Play/Reset). Never echo raw key."""
     body = request.get_json(silent=True) or {}
     if "venice_api_key" in body:
         raw = body.get("venice_api_key")
         if raw is None:
             raw = ""
-        # Empty string clears; whitespace-only treated as clear
         set_secret(DB_PATH, VENICE_KEY_NAME, str(raw))
         logger.info(
             "Venice API key %s in app_secrets",
             "updated" if str(raw).strip() else "cleared",
         )
+    if "venice_model" in body and body.get("venice_model") is not None:
+        mid = str(body.get("venice_model") or "").strip()
+        if not mid:
+            set_secret(DB_PATH, VENICE_MODEL_NAME, "")
+            logger.info("Venice model cleared (will use catalog default)")
+        elif not is_whitelisted(mid):
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": f"model not whitelisted (lab pass < threshold): {mid}",
+                        **_settings_payload(),
+                    }
+                ),
+                400,
+            )
+        else:
+            set_secret(DB_PATH, VENICE_MODEL_NAME, mid)
+            logger.info("Venice refine model set to %s", mid)
     return jsonify(_settings_payload())
 
 

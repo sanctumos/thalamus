@@ -34,7 +34,26 @@ Hard rules:
 
 
 def active_model() -> str:
-    return os.environ.get("VENICE_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
+    """Resolve refine model: DB setting (whitelisted) → env → catalog default."""
+    from . import model_catalog
+
+    if _secrets_db_path is not None:
+        from .secrets_store import VENICE_MODEL_NAME, get_secret
+
+        stored = get_secret(_secrets_db_path, VENICE_MODEL_NAME)
+        if stored and model_catalog.is_whitelisted(stored):
+            return stored
+        if stored and not model_catalog.is_whitelisted(stored):
+            logger.warning(
+                "Stored model %s not on whitelist; falling back", stored
+            )
+    env = os.environ.get("VENICE_MODEL", "").strip()
+    if env and model_catalog.is_whitelisted(env):
+        return env
+    try:
+        return model_catalog.default_model_id()
+    except Exception:
+        return DEFAULT_MODEL
 
 # Set by server/orchestrator — secrets live in the demo SQLite DB.
 _secrets_db_path: Optional[Path] = None

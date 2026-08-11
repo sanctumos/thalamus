@@ -335,27 +335,41 @@ def main() -> None:
             f"{(lab_cost or 0):10.6f}"
         )
 
-    # 4) Pick cheapest viable: pass>=80% and mean_q>=0.75 and hard_fails==0 relative to gold floor
+    # 4) Whitelist (≥85% lab pass) + cheapest fully-clean viable note
+    from datetime import date
+
+    from web_replay.model_catalog import PASS_PCT_MIN, write_whitelist_from_lab_summaries
+
     gold_q = summaries[0]["mean_quality"]
     viable = []
     for s in summaries:
-        if s["hard_fails"] == 0 and s["pass_pct"] >= 80 and s["mean_quality"] >= max(0.7, gold_q - 0.15):
+        if (
+            s["hard_fails"] == 0
+            and s["pass_pct"] >= 80
+            and s["mean_quality"] >= max(0.7, gold_q - 0.15)
+        ):
             viable.append(s)
 
     def cost_key(s):
         p = s.get("price") or {}
-        # blended short-job proxy: 1 in + 1 out
         return (p.get("input_usd_per_m", 99) + p.get("output_usd_per_m", 99)) / 2
 
     viable_sorted = sorted(viable, key=cost_key)
     recommendation = viable_sorted[0] if viable_sorted else summaries[0]
 
-    # Diminishing: first model (going weaker) that drops below viability
     cliff = None
     for s in summaries[1:]:
-        if s["hard_fails"] > 0 or s["pass_pct"] < 80 or s["mean_quality"] < max(0.7, gold_q - 0.15):
+        if (
+            s["hard_fails"] > 0
+            or s["pass_pct"] < PASS_PCT_MIN
+            or s["mean_quality"] < max(0.7, gold_q - 0.15)
+        ):
             cliff = s
             break
+
+    whitelist = write_whitelist_from_lab_summaries(
+        summaries, lab_date=date.today().isoformat(), pass_pct_min=PASS_PCT_MIN
+    )
 
     report = {
         "fragments": fragments,
@@ -363,6 +377,7 @@ def main() -> None:
         "summaries": summaries,
         "recommendation": recommendation,
         "quality_cliff": cliff,
+        "whitelist": whitelist,
         "rows": {k: v for k, v in all_rows.items()},
     }
     out_path = OUT_DIR / "model_ladder_report.json"
@@ -374,6 +389,7 @@ def main() -> None:
         "",
         f"Fragments: **{len(fragments)}** from `raw_data_log.json` (ASR cleanup, stenographer prompt).",
         f"Gold / baseline: `{gold_model}`.",
+        f"Whitelist floor: **≥{PASS_PCT_MIN}%** pass → `lab_out/refine_model_whitelist.json`.",
         "",
         "## Summary",
         "",
@@ -382,28 +398,43 @@ def main() -> None:
     ]
     for s in summaries:
         p = s.get("price") or {}
+        mark = " ✓" if s["pass_pct"] >= PASS_PCT_MIN else ""
         lines.append(
-            f"| `{s['model']}` | {s['pass_pct']} | {s['mean_quality']} | {s['hard_fails']} | "
+            f"| `{s['model']}`{mark} | {s['pass_pct']} | {s['mean_quality']} | {s['hard_fails']} | "
             f"{s['soft_fails']} | {s['mean_latency_ms']} | {p.get('input_usd_per_m','—')} | "
             f"{p.get('output_usd_per_m','—')} | {s['lab_cost_usd']} |"
         )
+    wl_ids = ", ".join(f"`{m['id']}`" for m in whitelist["models"])
     lines += [
         "",
-        f"**Cheapest viable:** `{recommendation['model']}` "
+        f"**Whitelisted (≥{PASS_PCT_MIN}%):** {wl_ids}",
+        "",
+        f"**Cheapest fully-clean viable:** `{recommendation['model']}` "
         f"(pass {recommendation['pass_pct']}%, mean Q {recommendation['mean_quality']}).",
         "",
     ]
     if cliff:
         lines.append(
-            f"**Quality cliff starts at:** `{cliff['model']}` "
+            f"**Below whitelist / cliff near:** `{cliff['model']}` "
             f"(pass {cliff['pass_pct']}%, hard_fails={cliff['hard_fails']}, mean Q {cliff['mean_quality']})."
         )
     else:
-        lines.append("**No cliff in this ladder** — even the weakest stayed viable on this sample.")
-    lines += ["", f"Raw JSON: `{out_path}`", ""]
+        lines.append("**No cliff in this ladder** — even the weakest stayed above the floor.")
+    lines += [
+        "",
+        "Re-run when Venice listings/pricing change:",
+        "",
+        "```bash",
+        "cd examples && PYTHONPATH=. python3 -m web_replay.lab_model_ladder",
+        "pytest web_replay/tests/test_model_whitelist.py -v",
+        "```",
+        "",
+        f"Raw JSON: `{out_path}`",
+        "",
+    ]
     md.write_text("\n".join(lines), encoding="utf-8")
     print("\n" + "\n".join(lines))
-    print(f"\nWrote {out_path} and {md}")
+    print(f"\nWrote {out_path}, {md}, and {OUT_DIR / 'refine_model_whitelist.json'}")
 
 
 if __name__ == "__main__":

@@ -128,6 +128,22 @@ button.btn-menu[aria-expanded="true"] {
   line-height: 1.35;
 }
 .settings-note code { color: var(--text); }
+.settings-meta {
+  margin: -0.35rem 0 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.settings-row select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 0.45rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+.settings-dialog { max-width: 34rem; }
 .settings-row { margin-bottom: 0.75rem; }
 .settings-row .ctl {
   display: flex;

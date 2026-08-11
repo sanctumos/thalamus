@@ -59,8 +59,30 @@
   function applySettings(d) {
     const present = !!(d.venice_api_key_set || d.venice_key_present);
     setKeyBadge(present, d.venice_api_key_hint || "");
-    const modelEl = $("venice-model-label");
-    if (modelEl && d.venice_model) modelEl.textContent = d.venice_model;
+    const modelSelect = $("venice-model");
+    const opts = d.venice_model_options || [];
+    if (modelSelect && opts.length) {
+      const prev = modelSelect.value;
+      modelSelect.innerHTML = "";
+      for (const o of opts) {
+        const opt = document.createElement("option");
+        opt.value = o.id;
+        opt.textContent = o.label;
+        modelSelect.appendChild(opt);
+      }
+      const want = d.venice_model || prev;
+      if (want && opts.some((o) => o.id === want)) modelSelect.value = want;
+    }
+    const meta = $("model-meta");
+    const m = d.venice_model_meta;
+    if (meta) {
+      if (m) {
+        meta.textContent =
+          `Lab score ${m.pass_pct}% pass · mean Q ${m.mean_quality} · cost ${m.cost_rating} (${m.cost_rel}× vs cheapest whitelisted) · ~$${m.blended_usd_per_m}/1M blended`;
+      } else {
+        meta.textContent = "";
+      }
+    }
   }
 
   function escapeHtml(s) {
@@ -232,20 +254,29 @@
 
   $("btn-save-settings").onclick = async (e) => {
     e.preventDefault();
+    const body = {
+      venice_model: $("venice-model").value,
+    };
     const venice_api_key = veniceKeyEl.value;
-    if (!venice_api_key.trim()) {
-      log("WARN", "Paste a key before Save (or use Clear)");
-      return;
-    }
+    if (venice_api_key.trim()) body.venice_api_key = venice_api_key;
     const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ venice_api_key }),
+      body: JSON.stringify(body),
     });
     const d = await res.json();
+    if (!res.ok) {
+      log("ERROR", d.error || "Settings save failed");
+      applySettings(d);
+      return;
+    }
     applySettings(d);
     veniceKeyEl.value = "";
-    log("INFO", "Venice API key saved to app_secrets (survives Play/Reset)");
+    log(
+      "INFO",
+      `Settings saved — refine model=${d.venice_model}` +
+        (body.venice_api_key ? "; API key updated" : "")
+    );
     closeSettings();
   };
 
