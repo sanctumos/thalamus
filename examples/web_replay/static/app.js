@@ -78,7 +78,7 @@
 
   $("btn-play").onclick = async () => {
     clearPanes();
-    const speed = parseFloat($("speed").value || "20");
+    const speed = parseFloat($("speed").value || "1");
     const res = await fetch("/api/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
