@@ -38,6 +38,14 @@ def reset_db(db_path: Path):
     return db
 
 
+def open_db(db_path: Path):
+    """Open existing demo DB (or create empty schema) without wiping rows."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db = load_database(db_path)
+    db.init_db()
+    return db
+
+
 def ingest_event(db, event: Dict[str, Any]) -> List[int]:
     """Insert one NDJSON event into raw_segments. Returns new raw ids.
 

@@ -140,7 +140,8 @@ def play():
 @app.post("/api/stop")
 def stop():
     orch.stop()
-    orch.state = "stopped"
+    if orch.state not in ("done", "error"):
+        orch.state = "stopped"
     return jsonify(orch.status())
 
 
@@ -177,7 +178,8 @@ def events_sse():
 
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    orch.reset()
+    # Do not wipe on boot — reload should show progress-so-far until Reset/Play
+    orch.ensure_db()
     host = os.environ.get("THALAMUS_WEB_HOST", "0.0.0.0")
     port = int(os.environ.get("THALAMUS_WEB_PORT", "8787"))
     app.run(host=host, port=port, threaded=True)

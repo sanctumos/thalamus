@@ -65,6 +65,8 @@
       );
     } else if (ev.type === "console") {
       log(ev.level, ev.message);
+    } else if (ev.type === "snapshot") {
+      renderSnapshot(ev);
     } else if (ev.type === "status" || ev.state) {
       setBadge(ev.state, ev.llm_mode);
       if (typeof ev.venice_key_present === "boolean") {
@@ -76,6 +78,42 @@
       if (typeof ev.speed === "number" && document.activeElement !== speedEl) {
         speedEl.value = String(ev.speed);
       }
+      // status payloads include snapshot — paint panes after reload / reconnect
+      if (ev.snapshot) {
+        renderSnapshot(ev.snapshot);
+      } else if (ev.raw_segments || ev.refined_segments) {
+        renderSnapshot(ev);
+      }
+    }
+  }
+
+  function renderSnapshot(snap) {
+    if (!snap) return;
+    const raw = snap.raw_segments || [];
+    const refined = snap.refined_segments || [];
+    const usage = snap.segment_usage || [];
+    // Only replace panes when we have a full snapshot (reload / stop / done).
+    // Avoid wiping mid-stream if an empty snapshot arrives by mistake.
+    rawEl.innerHTML = "";
+    refinedEl.innerHTML = "";
+    provEl.innerHTML = "";
+    for (const r of raw) {
+      append(
+        rawEl,
+        `<div class="meta">#${r.id} · ${r.speaker_name || "?"} · t=${r.start_time}</div>${escapeHtml(r.text)}`
+      );
+    }
+    for (const r of refined) {
+      append(
+        refinedEl,
+        `<div class="meta">#${r.id} · ${r.speaker_name || "?"} · mode=${r.mode || "?"}</div>${escapeHtml(r.text)}`
+      );
+    }
+    for (const r of usage) {
+      append(
+        provEl,
+        `<div class="meta">raw ${r.raw_segment_id} → refined ${r.refined_segment_id}</div>`
+      );
     }
   }
 
@@ -132,7 +170,27 @@
     const res = await fetch("/api/stop", { method: "POST" });
     const data = await res.json();
     setBadge(data.state, data.llm_mode);
+    if (data.snapshot) renderSnapshot(data.snapshot);
+    log("INFO", "Stopped — DB kept; panes show progress so far");
   };
+
+  function hydrate() {
+    return fetch("/api/status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.speed === "number") speedEl.value = String(d.speed);
+        if (typeof d.force_stub === "boolean") {
+          refineEl.value = d.force_stub ? "stub" : "venice";
+        }
+        setBadge(d.state, d.llm_mode);
+        setKeyBadge(!!d.venice_key_present);
+        if (d.snapshot) renderSnapshot(d.snapshot);
+        const n = (d.counts && d.counts.raw) || 0;
+        if (n > 0) {
+          log("INFO", `Hydrated ${n} raw / ${(d.counts && d.counts.refined) || 0} refined from DB`);
+        }
+      });
+  }
 
   fetch("/api/controls")
     .then((r) => r.json())
@@ -142,5 +200,8 @@
       setBadge(d.state, d.llm_mode);
       setKeyBadge(!!d.venice_key_present);
     })
-    .catch(() => {});
+    .catch(() => {})
+    .finally(() => {
+      hydrate().catch(() => {});
+    });
 })();

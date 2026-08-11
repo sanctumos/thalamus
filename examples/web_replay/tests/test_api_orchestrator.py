@@ -343,3 +343,28 @@ def test_main_runs(monkeypatch, tmp_path):
     create_app(db_path=tmp_path / "main.db", force_stub=True)
     server_mod.main()
     assert called == {"host": "127.0.0.1", "port": 8799, "threaded": True}
+
+
+def test_stop_keeps_db_and_status_hydrates(tmp_path, mini_log):
+    orch = Orchestrator(
+        db_path=tmp_path / "keep.db", data_log=mini_log, speed=1000.0, force_stub=True
+    )
+    orch.play()
+    deadline = time.time() + 10
+    while orch.state == "playing" and time.time() < deadline:
+        time.sleep(0.05)
+    # Simulate mid-play stop by starting again then stopping quickly
+    orch2 = Orchestrator(
+        db_path=tmp_path / "keep2.db", data_log=mini_log, speed=0.01, force_stub=True
+    )
+    # Use real file with long waits via tiny speed on many events — just ingest then stop
+    orch2.play()
+    time.sleep(0.15)
+    orch2.stop()
+    orch2.state = "stopped"
+    st = orch2.status()
+    assert st["counts"]["raw"] >= 1
+    # Re-open path without wipe
+    orch3 = Orchestrator(db_path=tmp_path / "keep2.db", force_stub=True)
+    st3 = orch3.status()
+    assert st3["counts"]["raw"] == st["counts"]["raw"]
