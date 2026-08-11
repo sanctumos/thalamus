@@ -1,0 +1,2119 @@
+{
+  "fragments": [
+    "Testing. Testing. Or do we have live connection?",
+    "Any other topics, guys?",
+    "on on another note?",
+    "Do you believe in t h u s d?",
+    "make it successful on a volunteer basis?",
+    "there were some contacts deployed, and they were working on them. So",
+    "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+    "as a decentralized group and saying, we believe in this product and posting a meet",
+    "But there's a small group of eyes that, like, really believe",
+    "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+    "Hello. Hello. Testing. Testing.",
+    "Had to restart the, app there.",
+    "Okay.",
+    "Finally."
+  ],
+  "ladder": [
+    "llama-3.3-70b",
+    "mistral-small-3-2-24b-instruct",
+    "deepseek-v4-flash",
+    "qwen3-5-9b",
+    "zai-org-glm-4.7-flash",
+    "llama-3.2-3b"
+  ],
+  "summaries": [
+    {
+      "model": "llama-3.3-70b",
+      "pass_pct": 100.0,
+      "mean_quality": 0.969,
+      "hard_fails": 0,
+      "soft_fails": 0,
+      "mean_latency_ms": 1931,
+      "price": {
+        "input_usd_per_m": 0.7,
+        "output_usd_per_m": 2.8
+      },
+      "lab_cost_usd": 0.002512,
+      "n": 14
+    },
+    {
+      "model": "mistral-small-3-2-24b-instruct",
+      "pass_pct": 100.0,
+      "mean_quality": 0.987,
+      "hard_fails": 0,
+      "soft_fails": 0,
+      "mean_latency_ms": 1242,
+      "price": {
+        "input_usd_per_m": 0.09375,
+        "output_usd_per_m": 0.25
+      },
+      "lab_cost_usd": 0.000292,
+      "n": 14
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "pass_pct": 85.7,
+      "mean_quality": 0.843,
+      "hard_fails": 2,
+      "soft_fails": 0,
+      "mean_latency_ms": 4537,
+      "price": {
+        "input_usd_per_m": 0.138,
+        "output_usd_per_m": 0.275
+      },
+      "lab_cost_usd": 0.000988,
+      "n": 14
+    },
+    {
+      "model": "qwen3-5-9b",
+      "pass_pct": 0.0,
+      "mean_quality": 0.0,
+      "hard_fails": 14,
+      "soft_fails": 0,
+      "mean_latency_ms": 2639,
+      "price": {
+        "input_usd_per_m": 0.1,
+        "output_usd_per_m": 0.15
+      },
+      "lab_cost_usd": 0.000264,
+      "n": 14
+    },
+    {
+      "model": "zai-org-glm-4.7-flash",
+      "pass_pct": 7.1,
+      "mean_quality": 0.071,
+      "hard_fails": 13,
+      "soft_fails": 0,
+      "mean_latency_ms": 4936,
+      "price": {
+        "input_usd_per_m": 0.06,
+        "output_usd_per_m": 0.4
+      },
+      "lab_cost_usd": 0.001817,
+      "n": 14
+    },
+    {
+      "model": "llama-3.2-3b",
+      "pass_pct": 100.0,
+      "mean_quality": 0.97,
+      "hard_fails": 0,
+      "soft_fails": 0,
+      "mean_latency_ms": 8040,
+      "price": {
+        "input_usd_per_m": 0.15,
+        "output_usd_per_m": 0.6
+      },
+      "lab_cost_usd": 0.000534,
+      "n": 14
+    }
+  ],
+  "recommendation": {
+    "model": "mistral-small-3-2-24b-instruct",
+    "pass_pct": 100.0,
+    "mean_quality": 0.987,
+    "hard_fails": 0,
+    "soft_fails": 0,
+    "mean_latency_ms": 1242,
+    "price": {
+      "input_usd_per_m": 0.09375,
+      "output_usd_per_m": 0.25
+    },
+    "lab_cost_usd": 0.000292,
+    "n": 14
+  },
+  "quality_cliff": {
+    "model": "deepseek-v4-flash",
+    "pass_pct": 85.7,
+    "mean_quality": 0.843,
+    "hard_fails": 2,
+    "soft_fails": 0,
+    "mean_latency_ms": 4537,
+    "price": {
+      "input_usd_per_m": 0.138,
+      "output_usd_per_m": 0.275
+    },
+    "lab_cost_usd": 0.000988,
+    "n": 14
+  },
+  "rows": {
+    "llama-3.3-70b": [
+      {
+        "i": 0,
+        "src": "Testing. Testing. Or do we have live connection?",
+        "out": "Testing. Testing. Or do we have a live connection?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.042,
+          "jaccard_src": 0.875,
+          "jaccard_gold": null,
+          "quality": 0.969
+        },
+        "latency_s": 3.3835272789001465,
+        "usage": {
+          "prompt_tokens": 216,
+          "completion_tokens": 13,
+          "total_tokens": 229,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 1,
+        "src": "Any other topics, guys?",
+        "out": "Any other topics, guys?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.706139087677002,
+        "usage": {
+          "prompt_tokens": 211,
+          "completion_tokens": 7,
+          "total_tokens": 218,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 2,
+        "src": "on on another note?",
+        "out": "On another note",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.789,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.7193620204925537,
+        "usage": {
+          "prompt_tokens": 210,
+          "completion_tokens": 4,
+          "total_tokens": 214,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 3,
+        "src": "Do you believe in t h u s d?",
+        "out": "Do you believe in thusd",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.821,
+          "jaccard_src": 0.4,
+          "jaccard_gold": null,
+          "quality": 0.85
+        },
+        "latency_s": 0.5218620300292969,
+        "usage": {
+          "prompt_tokens": 215,
+          "completion_tokens": 7,
+          "total_tokens": 222,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 4,
+        "src": "make it successful on a volunteer basis?",
+        "out": "Make it successful on a volunteer basis?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.8088319301605225,
+        "usage": {
+          "prompt_tokens": 213,
+          "completion_tokens": 9,
+          "total_tokens": 222,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 5,
+        "src": "there were some contacts deployed, and they were working on them. So",
+        "out": "There were some contacts deployed, and they were working on them. So",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.9764599800109863,
+        "usage": {
+          "prompt_tokens": 220,
+          "completion_tokens": 15,
+          "total_tokens": 235,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 6,
+        "src": "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+        "out": "The Throst steering committee wouldn't exist, so it would be us getting together.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.9,
+          "jaccard_src": 0.867,
+          "jaccard_gold": null,
+          "quality": 0.967
+        },
+        "latency_s": 5.2672669887542725,
+        "usage": {
+          "prompt_tokens": 226,
+          "completion_tokens": 18,
+          "total_tokens": 244,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 7,
+        "src": "as a decentralized group and saying, we believe in this product and posting a meet",
+        "out": "as a decentralized group, and saying we believe in this product, and posting a meeting",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.049,
+          "jaccard_src": 0.857,
+          "jaccard_gold": null,
+          "quality": 0.964
+        },
+        "latency_s": 10.138561964035034,
+        "usage": {
+          "prompt_tokens": 222,
+          "completion_tokens": 18,
+          "total_tokens": 240,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 8,
+        "src": "But there's a small group of eyes that, like, really believe",
+        "out": "But there's a small group of people who really believe",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.9,
+          "jaccard_src": 0.615,
+          "jaccard_gold": null,
+          "quality": 0.904
+        },
+        "latency_s": 0.7138652801513672,
+        "usage": {
+          "prompt_tokens": 220,
+          "completion_tokens": 12,
+          "total_tokens": 232,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 9,
+        "src": "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+        "out": "anybody that wants to try and hold it together in some way and thus",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.848,
+          "jaccard_src": 0.632,
+          "jaccard_gold": null,
+          "quality": 0.908
+        },
+        "latency_s": 0.8242471218109131,
+        "usage": {
+          "prompt_tokens": 228,
+          "completion_tokens": 16,
+          "total_tokens": 244,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 10,
+        "src": "Hello. Hello. Testing. Testing.",
+        "out": "Hello. Hello. Testing. Testing.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.71262526512146,
+        "usage": {
+          "prompt_tokens": 213,
+          "completion_tokens": 9,
+          "total_tokens": 222,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 11,
+        "src": "Had to restart the, app there.",
+        "out": "Had to restart the app there.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.967,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.6484308242797852,
+        "usage": {
+          "prompt_tokens": 213,
+          "completion_tokens": 8,
+          "total_tokens": 221,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 12,
+        "src": "Okay.",
+        "out": "Okay.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.6852931976318359,
+        "usage": {
+          "prompt_tokens": 207,
+          "completion_tokens": 3,
+          "total_tokens": 210,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      },
+      {
+        "i": 13,
+        "src": "Finally.",
+        "out": "Finally.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": null,
+          "quality": 1.0
+        },
+        "latency_s": 0.9207465648651123,
+        "usage": {
+          "prompt_tokens": 207,
+          "completion_tokens": 3,
+          "total_tokens": 210,
+          "prompt_tokens_details": {
+            "cached_tokens": 176
+          },
+          "cache_read_input_tokens": 176
+        },
+        "raw_model": "llama-3.3-70b"
+      }
+    ],
+    "mistral-small-3-2-24b-instruct": [
+      {
+        "i": 0,
+        "src": "Testing. Testing. Or do we have live connection?",
+        "out": "Testing. Testing. Or do we have a live connection?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.042,
+          "jaccard_src": 0.875,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.9224605560302734,
+        "usage": {
+          "prompt_tokens": 193,
+          "completion_tokens": 13,
+          "total_tokens": 206
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 1,
+        "src": "Any other topics, guys?",
+        "out": "Any other topics, guys?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.1956093311309814,
+        "usage": {
+          "prompt_tokens": 188,
+          "completion_tokens": 7,
+          "total_tokens": 195
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 2,
+        "src": "on on another note?",
+        "out": "On another note?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.842,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.7542767524719238,
+        "usage": {
+          "prompt_tokens": 187,
+          "completion_tokens": 5,
+          "total_tokens": 192
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 3,
+        "src": "Do you believe in t h u s d?",
+        "out": "Do you believe in thusd?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.857,
+          "jaccard_src": 0.4,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.7022771835327148,
+        "usage": {
+          "prompt_tokens": 192,
+          "completion_tokens": 8,
+          "total_tokens": 200
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 4,
+        "src": "make it successful on a volunteer basis?",
+        "out": "make it successful on a volunteer basis?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.7335610389709473,
+        "usage": {
+          "prompt_tokens": 190,
+          "completion_tokens": 9,
+          "total_tokens": 199
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 5,
+        "src": "there were some contacts deployed, and they were working on them. So",
+        "out": "There were some contacts deployed, and they were working on them. So",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.8738148212432861,
+        "usage": {
+          "prompt_tokens": 197,
+          "completion_tokens": 15,
+          "total_tokens": 212
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 6,
+        "src": "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+        "out": "You know, the Throst steering committee wouldn't exist. So it would be us getting together.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.011,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 0.867,
+          "quality": 0.967
+        },
+        "latency_s": 1.336052656173706,
+        "usage": {
+          "prompt_tokens": 203,
+          "completion_tokens": 21,
+          "total_tokens": 224
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 7,
+        "src": "as a decentralized group and saying, we believe in this product and posting a meet",
+        "out": "as a decentralized group and saying, we believe in this product and posting a meetup",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.024,
+          "jaccard_src": 0.857,
+          "jaccard_gold": 0.857,
+          "quality": 0.964
+        },
+        "latency_s": 3.5828816890716553,
+        "usage": {
+          "prompt_tokens": 200,
+          "completion_tokens": 19,
+          "total_tokens": 219
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 8,
+        "src": "But there's a small group of eyes that, like, really believe",
+        "out": "But there's a small group of guys that, like, really believe",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 0.833,
+          "jaccard_gold": 0.615,
+          "quality": 0.904
+        },
+        "latency_s": 2.613175630569458,
+        "usage": {
+          "prompt_tokens": 197,
+          "completion_tokens": 15,
+          "total_tokens": 212
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 9,
+        "src": "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+        "out": "anybody that wants to try and hold it together in some way? And it's thus.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.937,
+          "jaccard_src": 0.684,
+          "jaccard_gold": 0.929,
+          "quality": 0.982
+        },
+        "latency_s": 1.3884141445159912,
+        "usage": {
+          "prompt_tokens": 205,
+          "completion_tokens": 20,
+          "total_tokens": 225
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 10,
+        "src": "Hello. Hello. Testing. Testing.",
+        "out": "Hello. Hello. Testing. Testing.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.8690938949584961,
+        "usage": {
+          "prompt_tokens": 190,
+          "completion_tokens": 9,
+          "total_tokens": 199
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 11,
+        "src": "Had to restart the, app there.",
+        "out": "Had to restart the app there.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.967,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.7030906677246094,
+        "usage": {
+          "prompt_tokens": 190,
+          "completion_tokens": 8,
+          "total_tokens": 198
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 12,
+        "src": "Okay.",
+        "out": "Okay.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.5299980640411377,
+        "usage": {
+          "prompt_tokens": 184,
+          "completion_tokens": 3,
+          "total_tokens": 187
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      },
+      {
+        "i": 13,
+        "src": "Finally.",
+        "out": "Finally.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.1777942180633545,
+        "usage": {
+          "prompt_tokens": 184,
+          "completion_tokens": 3,
+          "total_tokens": 187
+        },
+        "raw_model": "mistral-small-3-2-24b-instruct"
+      }
+    ],
+    "deepseek-v4-flash": [
+      {
+        "i": 0,
+        "src": "Testing. Testing. Or do we have live connection?",
+        "out": "Testing. Testing. Or do we have live connection?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 0.875,
+          "quality": 0.969
+        },
+        "latency_s": 10.155195951461792,
+        "usage": {
+          "prompt_tokens": 188,
+          "completion_tokens": 272,
+          "total_tokens": 460,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 1,
+        "src": "Any other topics, guys?",
+        "out": "Any other topics, guys?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 2.5465354919433594,
+        "usage": {
+          "prompt_tokens": 183,
+          "completion_tokens": 70,
+          "total_tokens": 253,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 2,
+        "src": "on on another note?",
+        "out": "On another note?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.842,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.4920871257781982,
+        "usage": {
+          "prompt_tokens": 182,
+          "completion_tokens": 81,
+          "total_tokens": 263,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 3,
+        "src": "Do you believe in t h u s d?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 9.98520040512085,
+        "usage": {
+          "prompt_tokens": 187,
+          "completion_tokens": 300,
+          "total_tokens": 487,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 4,
+        "src": "make it successful on a volunteer basis?",
+        "out": "Make it successful on a volunteer basis?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 3.9418106079101562,
+        "usage": {
+          "prompt_tokens": 185,
+          "completion_tokens": 99,
+          "total_tokens": 284,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 5,
+        "src": "there were some contacts deployed, and they were working on them. So",
+        "out": "There were some contacts deployed, and they were working on them. So",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 3.2265584468841553,
+        "usage": {
+          "prompt_tokens": 192,
+          "completion_tokens": 151,
+          "total_tokens": 343,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 6,
+        "src": "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+        "out": "You know, the THROST steering committee wouldn't exist. So it would be us getting together.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.011,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 0.867,
+          "quality": 0.967
+        },
+        "latency_s": 5.227166175842285,
+        "usage": {
+          "prompt_tokens": 198,
+          "completion_tokens": 177,
+          "total_tokens": 375,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 7,
+        "src": "as a decentralized group and saying, we believe in this product and posting a meet",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 7.812443733215332,
+        "usage": {
+          "prompt_tokens": 194,
+          "completion_tokens": 300,
+          "total_tokens": 494,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 8,
+        "src": "But there's a small group of eyes that, like, really believe",
+        "out": "But there's a small group of guys that really believe.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.9,
+          "jaccard_src": 0.75,
+          "jaccard_gold": 0.667,
+          "quality": 0.917
+        },
+        "latency_s": 5.202410459518433,
+        "usage": {
+          "prompt_tokens": 192,
+          "completion_tokens": 224,
+          "total_tokens": 416,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 9,
+        "src": "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+        "out": "Anybody that wants to try and hold it together in",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.62,
+          "jaccard_src": 0.556,
+          "jaccard_gold": 0.769,
+          "quality": 0.942
+        },
+        "latency_s": 5.778687477111816,
+        "usage": {
+          "prompt_tokens": 200,
+          "completion_tokens": 300,
+          "total_tokens": 500,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 10,
+        "src": "Hello. Hello. Testing. Testing.",
+        "out": "Hello. Hello. Testing. Testing.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 2.3586864471435547,
+        "usage": {
+          "prompt_tokens": 185,
+          "completion_tokens": 116,
+          "total_tokens": 301,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 11,
+        "src": "Had to restart the, app there.",
+        "out": "Had to restart the app there.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.967,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 2.539027214050293,
+        "usage": {
+          "prompt_tokens": 185,
+          "completion_tokens": 69,
+          "total_tokens": 254,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 12,
+        "src": "Okay.",
+        "out": "Okay.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.689587116241455,
+        "usage": {
+          "prompt_tokens": 179,
+          "completion_tokens": 40,
+          "total_tokens": 219,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      },
+      {
+        "i": 13,
+        "src": "Finally.",
+        "out": "Finally.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.56699538230896,
+        "usage": {
+          "prompt_tokens": 179,
+          "completion_tokens": 76,
+          "total_tokens": 255,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "deepseek-v4-flash"
+      }
+    ],
+    "qwen3-5-9b": [
+      {
+        "i": 0,
+        "src": "Testing. Testing. Or do we have live connection?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 2.6110928058624268,
+        "usage": {
+          "prompt_tokens": 205,
+          "completion_tokens": 300,
+          "total_tokens": 505,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "qwen3-5-9b"
+      },
+      {
+        "i": 1,
+        "src": "Any other topics, guys?",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.391,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 2,
+        "src": "on on another note?",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.474,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 3,
+        "src": "Do you believe in t h u s d?",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.321,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 4,
+        "src": "make it successful on a volunteer basis?",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "collapsed_too_much",
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.225,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 5,
+        "src": "there were some contacts deployed, and they were working on them. So",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "collapsed_too_much",
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.132,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 6,
+        "src": "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "collapsed_too_much",
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.1,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 7,
+        "src": "as a decentralized group and saying, we believe in this product and posting a meet",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 2.6163594722747803,
+        "usage": {
+          "prompt_tokens": 210,
+          "completion_tokens": 300,
+          "total_tokens": 510,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "qwen3-5-9b"
+      },
+      {
+        "i": 8,
+        "src": "But there's a small group of eyes that, like, really believe",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 2.656043291091919,
+        "usage": {
+          "prompt_tokens": 208,
+          "completion_tokens": 300,
+          "total_tokens": 508,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "qwen3-5-9b"
+      },
+      {
+        "i": 9,
+        "src": "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 2.6737585067749023,
+        "usage": {
+          "prompt_tokens": 217,
+          "completion_tokens": 300,
+          "total_tokens": 517,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "qwen3-5-9b"
+      },
+      {
+        "i": 10,
+        "src": "Hello. Hello. Testing. Testing.",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.29,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 11,
+        "src": "Had to restart the, app there.",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.3,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 12,
+        "src": "Okay.",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 1.8,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      },
+      {
+        "i": 13,
+        "src": "Finally.",
+        "out": "ERROR:429",
+        "score": {
+          "issues": [
+            "low_src_overlap"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 1.125,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": null,
+        "usage": {},
+        "error": "{\"error\":\"The model is currently overloaded. Please try again later.\"}"
+      }
+    ],
+    "zai-org-glm-4.7-flash": [
+      {
+        "i": 0,
+        "src": "Testing. Testing. Or do we have live connection?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 3.6331121921539307,
+        "usage": {
+          "prompt_tokens": 187,
+          "completion_tokens": 300,
+          "total_tokens": 487,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 1,
+        "src": "Any other topics, guys?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 4.069418907165527,
+        "usage": {
+          "prompt_tokens": 182,
+          "completion_tokens": 300,
+          "total_tokens": 482,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 2,
+        "src": "on on another note?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty"
+          ],
+          "hard_fail": true,
+          "soft_fail": false,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 3.4405319690704346,
+        "usage": {
+          "prompt_tokens": 181,
+          "completion_tokens": 300,
+          "total_tokens": 481,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 3,
+        "src": "Do you believe in t h u s d?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 3.541402816772461,
+        "usage": {
+          "prompt_tokens": 186,
+          "completion_tokens": 300,
+          "total_tokens": 486,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 4,
+        "src": "make it successful on a volunteer basis?",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 4.861698865890503,
+        "usage": {
+          "prompt_tokens": 184,
+          "completion_tokens": 300,
+          "total_tokens": 484,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 5,
+        "src": "there were some contacts deployed, and they were working on them. So",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 5.899219036102295,
+        "usage": {
+          "prompt_tokens": 191,
+          "completion_tokens": 300,
+          "total_tokens": 491,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 6,
+        "src": "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 4.215146780014038,
+        "usage": {
+          "prompt_tokens": 197,
+          "completion_tokens": 300,
+          "total_tokens": 497,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 7,
+        "src": "as a decentralized group and saying, we believe in this product and posting a meet",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 6.019559621810913,
+        "usage": {
+          "prompt_tokens": 193,
+          "completion_tokens": 300,
+          "total_tokens": 493,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 8,
+        "src": "But there's a small group of eyes that, like, really believe",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 5.3358635902404785,
+        "usage": {
+          "prompt_tokens": 191,
+          "completion_tokens": 300,
+          "total_tokens": 491,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 9,
+        "src": "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 7.752960443496704,
+        "usage": {
+          "prompt_tokens": 199,
+          "completion_tokens": 300,
+          "total_tokens": 499,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 10,
+        "src": "Hello. Hello. Testing. Testing.",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 6.44153356552124,
+        "usage": {
+          "prompt_tokens": 184,
+          "completion_tokens": 300,
+          "total_tokens": 484,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 11,
+        "src": "Had to restart the, app there.",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty",
+            "collapsed_too_much"
+          ],
+          "hard_fail": true,
+          "soft_fail": true,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 5.058140277862549,
+        "usage": {
+          "prompt_tokens": 184,
+          "completion_tokens": 300,
+          "total_tokens": 484,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 12,
+        "src": "Okay.",
+        "out": "Okay.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 3.9278857707977295,
+        "usage": {
+          "prompt_tokens": 178,
+          "completion_tokens": 250,
+          "total_tokens": 428,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      },
+      {
+        "i": 13,
+        "src": "Finally.",
+        "out": "",
+        "score": {
+          "issues": [
+            "empty"
+          ],
+          "hard_fail": true,
+          "soft_fail": false,
+          "len_ratio": 0.0,
+          "jaccard_src": 0.0,
+          "jaccard_gold": 0.0,
+          "quality": 0.0
+        },
+        "latency_s": 4.90572190284729,
+        "usage": {
+          "prompt_tokens": 178,
+          "completion_tokens": 300,
+          "total_tokens": 478,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "cache_read_input_tokens": 128
+        },
+        "raw_model": "zai-org-glm-4.7-flash"
+      }
+    ],
+    "llama-3.2-3b": [
+      {
+        "i": 0,
+        "src": "Testing. Testing. Or do we have live connection?",
+        "out": "Testing. Testing. Do we have a live connection?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.979,
+          "jaccard_src": 0.75,
+          "jaccard_gold": 0.875,
+          "quality": 0.969
+        },
+        "latency_s": 1.6385316848754883,
+        "usage": {
+          "prompt_tokens": 209,
+          "completion_tokens": 12,
+          "total_tokens": 221
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 1,
+        "src": "Any other topics, guys?",
+        "out": "Any other topics, guys?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.1056160926818848,
+        "usage": {
+          "prompt_tokens": 204,
+          "completion_tokens": 7,
+          "total_tokens": 211
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 2,
+        "src": "on on another note?",
+        "out": "On another note?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.842,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 0.7582154273986816,
+        "usage": {
+          "prompt_tokens": 203,
+          "completion_tokens": 5,
+          "total_tokens": 208
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 3,
+        "src": "Do you believe in t h u s d?",
+        "out": "Do you believe in this?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.821,
+          "jaccard_src": 0.4,
+          "jaccard_gold": 0.667,
+          "quality": 0.917
+        },
+        "latency_s": 1.0367927551269531,
+        "usage": {
+          "prompt_tokens": 208,
+          "completion_tokens": 7,
+          "total_tokens": 215
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 4,
+        "src": "make it successful on a volunteer basis?",
+        "out": "Make it successful on a volunteer basis?",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.4341115951538086,
+        "usage": {
+          "prompt_tokens": 206,
+          "completion_tokens": 9,
+          "total_tokens": 215
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 5,
+        "src": "there were some contacts deployed, and they were working on them. So",
+        "out": "There were some contracts deployed, and they were working on them.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.971,
+          "jaccard_src": 0.75,
+          "jaccard_gold": 0.75,
+          "quality": 0.938
+        },
+        "latency_s": 1.7948222160339355,
+        "usage": {
+          "prompt_tokens": 212,
+          "completion_tokens": 14,
+          "total_tokens": 226
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 6,
+        "src": "You know, the THROST steering committee wouldn't exist. So it would be us getting together",
+        "out": "You know, the THROST steering committee wouldn't exist. So it would be us getting together.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.011,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 0.867,
+          "quality": 0.967
+        },
+        "latency_s": 2.3079335689544678,
+        "usage": {
+          "prompt_tokens": 218,
+          "completion_tokens": 22,
+          "total_tokens": 240
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 7,
+        "src": "as a decentralized group and saying, we believe in this product and posting a meet",
+        "out": "As a decentralized group and saying, \"We believe in this product,\" and posting a meme.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.049,
+          "jaccard_src": 0.857,
+          "jaccard_gold": 0.857,
+          "quality": 0.964
+        },
+        "latency_s": 2.000758409500122,
+        "usage": {
+          "prompt_tokens": 214,
+          "completion_tokens": 20,
+          "total_tokens": 234
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 8,
+        "src": "But there's a small group of eyes that, like, really believe",
+        "out": "But there's a small group of eyes that really believe",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.883,
+          "jaccard_src": 0.909,
+          "jaccard_gold": 0.667,
+          "quality": 0.917
+        },
+        "latency_s": 1.3343477249145508,
+        "usage": {
+          "prompt_tokens": 213,
+          "completion_tokens": 13,
+          "total_tokens": 226
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 9,
+        "src": "anybody that wants to try and hold it together in some way? And it's t h u s e.",
+        "out": "Anybody that wants to try and hold it together in some way? And it's T-H-U-S-E.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 0.632,
+          "quality": 0.908
+        },
+        "latency_s": 2.561730146408081,
+        "usage": {
+          "prompt_tokens": 222,
+          "completion_tokens": 28,
+          "total_tokens": 250
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 10,
+        "src": "Hello. Hello. Testing. Testing.",
+        "out": "Hello. Hello. Testing. Testing.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 50.845415115356445,
+        "usage": {
+          "prompt_tokens": 206,
+          "completion_tokens": 9,
+          "total_tokens": 215
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 11,
+        "src": "Had to restart the, app there.",
+        "out": "Had to restart the app there.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 0.967,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 1.0716917514801025,
+        "usage": {
+          "prompt_tokens": 206,
+          "completion_tokens": 8,
+          "total_tokens": 214
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 12,
+        "src": "Okay.",
+        "out": "Okay.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 20.43446111679077,
+        "usage": {
+          "prompt_tokens": 200,
+          "completion_tokens": 3,
+          "total_tokens": 203
+        },
+        "raw_model": "llama-3.2-3b"
+      },
+      {
+        "i": 13,
+        "src": "Finally.",
+        "out": "Finally.",
+        "score": {
+          "issues": [],
+          "hard_fail": false,
+          "soft_fail": false,
+          "len_ratio": 1.0,
+          "jaccard_src": 1.0,
+          "jaccard_gold": 1.0,
+          "quality": 1.0
+        },
+        "latency_s": 24.239017009735107,
+        "usage": {
+          "prompt_tokens": 200,
+          "completion_tokens": 3,
+          "total_tokens": 203
+        },
+        "raw_model": "llama-3.2-3b"
+      }
+    ]
+  }
+}

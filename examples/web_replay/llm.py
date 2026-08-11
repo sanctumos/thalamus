@@ -18,7 +18,7 @@ from typing import Optional, Tuple
 logger = logging.getLogger(__name__)
 
 VENICE_BASE = "https://api.venice.ai/api/v1"
-DEFAULT_MODEL = "llama-3.3-70b"
+DEFAULT_MODEL = "mistral-small-3-2-24b-instruct"
 
 REFINE_SYSTEM = """You are a silent speech-to-text cleanup engine — not an assistant and not a chatbot.
 
