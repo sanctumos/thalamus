@@ -82,12 +82,6 @@ button.btn-menu[aria-expanded="true"] {
 .badge.muted { color: var(--muted); }
 .badge.ok { color: var(--accent); border-color: #2a5a52; }
 
-.settings-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(4, 10, 16, 0.55);
-  z-index: 40;
-}
 .settings-dialog {
   border: 1px solid var(--line);
   border-radius: 6px;
