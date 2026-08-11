@@ -18,6 +18,7 @@ from typing import Any, Dict, List
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 from .orchestrator import Orchestrator
+from .llm import load_venice_key
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,8 +43,8 @@ orch = Orchestrator(
     db_path=DB_PATH,
     data_log=DATA_LOG,
     speed=float(os.environ.get("THALAMUS_WEB_SPEED", "1.0")),
-    force_stub=os.environ.get("THALAMUS_WEB_FORCE_STUB", "").strip()
-    in ("1", "true", "yes"),
+    force_stub=os.environ.get("THALAMUS_WEB_FORCE_STUB", "1").strip().lower()
+    in ("1", "true", "yes", ""),
 )
 
 
@@ -89,12 +90,36 @@ def index():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"ok": True, "state": orch.state, "llm_mode": orch.llm_mode})
+    return jsonify(
+        {
+            "ok": True,
+            "state": orch.state,
+            "llm_mode": orch.llm_mode,
+            "force_stub": orch.force_stub,
+            "venice_key_present": bool(load_venice_key()),
+        }
+    )
 
 
 @app.get("/api/status")
 def status():
-    return jsonify(orch.status())
+    payload = orch.status()
+    payload["venice_key_present"] = bool(load_venice_key())
+    return jsonify(payload)
+
+
+@app.get("/api/controls")
+def controls():
+    """Defaults the web control surface should show."""
+    return jsonify(
+        {
+            "speed": orch.speed,
+            "force_stub": orch.force_stub,
+            "venice_key_present": bool(load_venice_key()),
+            "llm_mode": orch.llm_mode,
+            "state": orch.state,
+        }
+    )
 
 
 @app.post("/api/reset")

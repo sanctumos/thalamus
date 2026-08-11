@@ -30,14 +30,27 @@ body {
 h1 { margin: 0; font-size: 1.4rem; letter-spacing: -0.02em; }
 .sub { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.9rem; }
 .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.controls input {
+.controls .ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.controls input, .controls select {
   width: 4.5rem;
   background: var(--panel);
   border: 1px solid var(--line);
   color: var(--text);
   padding: 0.35rem 0.45rem;
   border-radius: 3px;
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: normal;
 }
+.controls select { width: 9.5rem; }
 button {
   background: var(--accent);
   color: #04201c;
@@ -46,6 +59,7 @@ button {
   border-radius: 3px;
   font-weight: 600;
   cursor: pointer;
+  align-self: flex-end;
 }
 button#btn-reset, button#btn-stop { background: #334155; color: var(--text); }
 .badge {
@@ -54,7 +68,10 @@ button#btn-reset, button#btn-stop { background: #334155; color: var(--text); }
   border-radius: 3px;
   background: #1e293b;
   border: 1px solid var(--line);
+  align-self: flex-end;
 }
+.badge.muted { color: var(--muted); }
+.badge.ok { color: var(--accent); border-color: #2a5a52; }
 
 .grid {
   display: grid;

@@ -5,6 +5,9 @@
   const provEl = $("provenance");
   const consoleEl = $("console");
   const badge = $("badge");
+  const keyBadge = $("key-badge");
+  const speedEl = $("speed");
+  const refineEl = $("refine-mode");
 
   function append(el, html) {
     const div = document.createElement("div");
@@ -22,8 +25,16 @@
     consoleEl.scrollTop = consoleEl.scrollHeight;
   }
 
-  function setBadge(state) {
-    badge.textContent = state || "idle";
+  function setBadge(state, llmMode) {
+    const parts = [state || "idle"];
+    if (llmMode && llmMode !== "unknown") parts.push(llmMode);
+    badge.textContent = parts.join(" · ");
+  }
+
+  function setKeyBadge(present) {
+    keyBadge.textContent = present ? "Venice key: yes" : "Venice key: no";
+    keyBadge.classList.toggle("ok", !!present);
+    keyBadge.classList.toggle("muted", !present);
   }
 
   function escapeHtml(s) {
@@ -55,7 +66,16 @@
     } else if (ev.type === "console") {
       log(ev.level, ev.message);
     } else if (ev.type === "status" || ev.state) {
-      setBadge(ev.state);
+      setBadge(ev.state, ev.llm_mode);
+      if (typeof ev.venice_key_present === "boolean") {
+        setKeyBadge(ev.venice_key_present);
+      }
+      if (typeof ev.force_stub === "boolean" && document.activeElement !== refineEl) {
+        refineEl.value = ev.force_stub ? "stub" : "venice";
+      }
+      if (typeof ev.speed === "number" && document.activeElement !== speedEl) {
+        speedEl.value = String(ev.speed);
+      }
     }
   }
 
@@ -64,6 +84,12 @@
     refinedEl.innerHTML = "";
     provEl.innerHTML = "";
     consoleEl.innerHTML = "";
+  }
+
+  function playBody() {
+    const speed = parseFloat(speedEl.value || "1");
+    const force_stub = refineEl.value !== "venice";
+    return { speed, force_stub };
   }
 
   const es = new EventSource("/api/events");
@@ -78,32 +104,43 @@
 
   $("btn-play").onclick = async () => {
     clearPanes();
-    const speed = parseFloat($("speed").value || "1");
+    const body = playBody();
+    if (!body.force_stub && keyBadge.textContent.includes("no")) {
+      log("WARN", "Venice selected but no API key on server — will fall back to stub on failure");
+    }
     const res = await fetch("/api/play", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ speed, force_stub: true }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
-    setBadge(data.state);
-    log("INFO", `Play requested speed=${speed}`);
+    setBadge(data.state, data.llm_mode);
+    log(
+      "INFO",
+      `Play speed=${body.speed} refine=${body.force_stub ? "stub" : "venice"}`
+    );
   };
 
   $("btn-reset").onclick = async () => {
     clearPanes();
     const res = await fetch("/api/reset", { method: "POST" });
     const data = await res.json();
-    setBadge(data.state);
+    setBadge(data.state, data.llm_mode);
   };
 
   $("btn-stop").onclick = async () => {
     const res = await fetch("/api/stop", { method: "POST" });
     const data = await res.json();
-    setBadge(data.state);
+    setBadge(data.state, data.llm_mode);
   };
 
-  fetch("/api/status")
+  fetch("/api/controls")
     .then((r) => r.json())
-    .then((d) => setBadge(d.state))
+    .then((d) => {
+      if (typeof d.speed === "number") speedEl.value = String(d.speed);
+      refineEl.value = d.force_stub ? "stub" : "venice";
+      setBadge(d.state, d.llm_mode);
+      setKeyBadge(!!d.venice_key_present);
+    })
     .catch(() => {});
 })();

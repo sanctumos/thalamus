@@ -80,10 +80,27 @@ def test_call_text_force_stub():
     assert text.startswith("[refined]")
 
 
-def test_call_text_env_force_stub(monkeypatch):
+def test_call_text_env_no_longer_overrides(monkeypatch):
+    """Env FORCE_STUB must not override an explicit force_stub=False from the UI."""
     monkeypatch.setenv("THALAMUS_WEB_FORCE_STUB", "1")
+    monkeypatch.setenv("VENICE_API_KEY", "k")
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {"choices": [{"message": {"content": "from-venice"}}]}
+            ).encode()
+
+    monkeypatch.setattr(llm_mod.urllib.request, "urlopen", lambda *a, **k: Resp())
     text, mode = call_text("hello", force_stub=False)
-    assert mode == "stub"
+    assert mode == "venice"
+    assert text == "from-venice"
 
 
 def test_load_venice_key_from_env(monkeypatch):
@@ -254,7 +271,18 @@ def client(tmp_path, mini_log):
 def test_health_route(client):
     r = client.get("/api/health")
     assert r.status_code == 200
-    assert r.get_json()["ok"] is True
+    body = r.get_json()
+    assert body["ok"] is True
+    assert "venice_key_present" in body
+
+
+def test_controls_route(client):
+    r = client.get("/api/controls")
+    assert r.status_code == 200
+    data = r.get_json()
+    assert "speed" in data
+    assert "force_stub" in data
+    assert "venice_key_present" in data
 
 
 def test_status_route(client):

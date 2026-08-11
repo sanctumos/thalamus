@@ -12,6 +12,7 @@ if [[ -f "${HOME}/.ssh/venice.pass" ]]; then
 fi
 
 export THALAMUS_WEB_DATA="${THALAMUS_WEB_DATA:-$ROOT/data}"
+# Server-side defaults only — Play speed / refine mode come from the web UI.
 export THALAMUS_WEB_SPEED="${THALAMUS_WEB_SPEED:-1.0}"
 export THALAMUS_WEB_HOST="${THALAMUS_WEB_HOST:-0.0.0.0}"
 export THALAMUS_WEB_PORT="${THALAMUS_WEB_PORT:-8787}"

@@ -12,12 +12,21 @@
       <h1>Thalamus</h1>
       <p class="sub">Omi streaming replay · Path A · real DB layers</p>
     </div>
-    <div class="controls">
-      <label>Speed <input id="speed" type="number" min="0.1" step="0.1" value="1" /></label>
+    <div class="controls" id="controls">
+      <label class="ctl">Speed
+        <input id="speed" type="number" min="0.1" step="0.1" value="1" title="1.0 = real log_timestamp deltas" />
+      </label>
+      <label class="ctl">Refine
+        <select id="refine-mode" title="Stub is local; Venice hits api.venice.ai">
+          <option value="stub" selected>Stub (local)</option>
+          <option value="venice">Venice (LLM)</option>
+        </select>
+      </label>
       <button id="btn-play" type="button">Play</button>
       <button id="btn-reset" type="button">Reset</button>
       <button id="btn-stop" type="button">Stop</button>
       <span id="badge" class="badge">idle</span>
+      <span id="key-badge" class="badge muted" title="Venice API key on server">key: …</span>
     </div>
   </header>
 

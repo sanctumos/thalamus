@@ -61,6 +61,7 @@ class Orchestrator:
         return {
             "state": self.state,
             "llm_mode": self.llm_mode,
+            "force_stub": self.force_stub,
             "speed": self.speed,
             "counts": {
                 "raw": len(snap["raw_segments"]),

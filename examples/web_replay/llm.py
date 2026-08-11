@@ -79,12 +79,11 @@ def venice_refine(text: str, api_key: Optional[str] = None) -> str:
 
 
 def call_text(prompt: str, *, force_stub: bool = False) -> Tuple[str, str]:
-    """Return (text, mode) where mode is 'venice' or 'stub'."""
-    if force_stub or os.environ.get("THALAMUS_WEB_FORCE_STUB", "").strip() in (
-        "1",
-        "true",
-        "yes",
-    ):
+    """Return (text, mode) where mode is 'venice' or 'stub'.
+
+    Play/UI owns force_stub — no env override here (env only seeds the web default).
+    """
+    if force_stub:
         return stub_refine(prompt), "stub"
     try:
         return venice_refine(prompt), "venice"
