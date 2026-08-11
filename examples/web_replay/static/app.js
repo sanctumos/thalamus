@@ -59,6 +59,8 @@
   function applySettings(d) {
     const present = !!(d.venice_api_key_set || d.venice_key_present);
     setKeyBadge(present, d.venice_api_key_hint || "");
+    const modelEl = $("venice-model-label");
+    if (modelEl && d.venice_model) modelEl.textContent = d.venice_model;
   }
 
   function escapeHtml(s) {

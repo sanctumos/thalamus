@@ -185,6 +185,13 @@ def test_venice_refine_success(monkeypatch):
     assert venice_refine("noisy", api_key="k") == "clean text"
 
 
+def test_strip_assistant_chrome():
+    from web_replay.llm import _strip_assistant_chrome
+
+    assert _strip_assistant_chrome('Sure! "Hello there"') == "Hello there"
+    assert _strip_assistant_chrome("Hello?") == "Hello?"
+
+
 def test_venice_refine_no_key(monkeypatch, tmp_path):
     monkeypatch.delenv("VENICE_API_KEY", raising=False)
     monkeypatch.delenv("VENICE_INFERENCE_KEY", raising=False)

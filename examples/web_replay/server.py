@@ -18,7 +18,7 @@ from typing import Any, Dict, List
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 from . import llm as llm_mod
-from .llm import load_venice_key, set_secrets_db_path
+from .llm import active_model, load_venice_key, set_secrets_db_path
 from .orchestrator import Orchestrator
 from .secrets_store import VENICE_KEY_NAME, secret_hint, secret_present, set_secret
 
@@ -71,6 +71,7 @@ def _settings_payload() -> Dict[str, Any]:
         "venice_api_key_set": secret_present(DB_PATH, VENICE_KEY_NAME),
         "venice_api_key_hint": secret_hint(DB_PATH, VENICE_KEY_NAME),
         "venice_key_present": bool(load_venice_key()),
+        "venice_model": active_model(),
     }
 
 
