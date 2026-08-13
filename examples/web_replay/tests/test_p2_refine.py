@@ -12,6 +12,7 @@ import pytest
 from web_replay.db_util import reset_db
 from web_replay.p2_filters.breaker import TopicBreaker, score_batch, start_topic_state
 from web_replay.p2_filters.refine_engine import list_refine_passes, run_refine_pass
+from web_replay.p2_filters.scorer import list_score_events
 from web_replay.p2_filters.store import get_settings, patch_settings
 
 
@@ -61,6 +62,98 @@ def test_refine_pass_stub_writes_row(p2_db):
     passes = list_refine_passes(db)
     assert len(passes) == 1
     assert passes[0]["pass_index"] == 1
+
+
+def test_refine_pass_is_delta_not_duplicate(p2_db):
+    """Second pass emits only turns after the first pass — no repeated text."""
+    db = p2_db
+    ids = _seed_segments(db, ["alpha unique first", "bravo unique second"])
+    p1 = run_refine_pass(
+        db,
+        anchor_raw_id=ids[0],
+        after_raw_id=ids[0] - 1,
+        topic_score=0.5,
+        home_terms=["docket"],
+        force_stub=True,
+    )
+    assert not p1["skipped"]
+    assert "alpha unique first" in p1["text"]
+    assert "bravo unique second" in p1["text"]
+
+    more = _seed_segments(db, ["charlie unique third"])
+    p2 = run_refine_pass(
+        db,
+        anchor_raw_id=ids[0],
+        after_raw_id=p1["window_end_raw_id"],
+        topic_score=0.5,
+        home_terms=["docket"],
+        force_stub=True,
+    )
+    assert not p2["skipped"]
+    assert "charlie unique third" in p2["text"]
+    assert "alpha unique first" not in p2["text"]
+    assert "bravo unique second" not in p2["text"]
+    assert p2["window_start_raw_id"] == more[0]
+
+
+def test_refine_pass_skips_when_no_new_turns(p2_db):
+    db = p2_db
+    ids = _seed_segments(db, ["only one turn"])
+    p1 = run_refine_pass(
+        db,
+        anchor_raw_id=ids[0],
+        after_raw_id=ids[0] - 1,
+        topic_score=0.5,
+        home_terms=[],
+        force_stub=True,
+    )
+    p2 = run_refine_pass(
+        db,
+        anchor_raw_id=ids[0],
+        after_raw_id=p1["window_end_raw_id"],
+        topic_score=0.5,
+        home_terms=[],
+        force_stub=True,
+    )
+    assert p2["skipped"] is True
+    assert len(list_refine_passes(db)) == 1
+
+
+def test_breaker_mark_pass_persists(p2_db):
+    db = p2_db
+    start_topic_state(
+        db, home_text="docket queue", project_card="docket", anchor_raw_id=5
+    )
+    br = TopicBreaker(db)
+    assert br.last_pass_raw_id == 5
+    br.mark_pass(42)
+    br2 = TopicBreaker(db)
+    assert br2.last_pass_raw_id == 42
+
+
+def test_list_score_events_chronological(p2_db):
+    db = p2_db
+    from web_replay.p2_filters.scorer import P2Scorer, SegmentView
+
+    scorer = P2Scorer(db)
+    scorer.observe(
+        SegmentView(
+            raw_id=1, speaker_id=1, speaker_name="SPEAKER_00",
+            text="hey dude", start_time=0.0, end_time=2.0,
+        )
+    )
+    scorer.observe(
+        SegmentView(
+            raw_id=2, speaker_id=1, speaker_name="SPEAKER_00",
+            text="send the docket queue export", start_time=3.0, end_time=5.0,
+        )
+    )
+    events = list_score_events(db, limit=10)
+    assert len(events) >= 2
+    assert events[0]["id"] < events[-1]["id"]
+    assert all("evidence" in e for e in events)
+    kinds = {e["rule_kind"] for e in events}
+    assert "greeting_lexicon" in kinds
 
 
 def test_breaker_hysteresis_off_then_on(p2_db):

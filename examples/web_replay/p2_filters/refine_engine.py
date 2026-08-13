@@ -27,11 +27,14 @@ P2_REFINE_SYSTEM = """You are Thalamus's P2 conversational refinement engine.
 You re-analyze a rolling window of ASR transcript in greater context — not a
 chatbot, not a summarizer for a human. Your output feeds a live pane.
 
+You are given (a) already-refined earlier context and (b) NEW raw turns.
+
 Hard rules:
+- Output ONLY the refined lines for the NEW turns — never repeat context lines.
 - Preserve speaker turns; use the speaker labels given (SPEAKER_00, etc.).
 - Fix punctuation, casing, obvious ASR errors, and run-on fragments using context.
 - Do NOT invent names, facts, or commitments not in the window or project card.
-- Output ONLY the refined transcript lines, one per turn, format:
+- Output format, one per new turn:
   [SPEAKER_XX] cleaned text
 - No preface, no markdown fences, no commentary.
 """
@@ -80,7 +83,8 @@ def stub_p2_refine(window_text: str) -> str:
 
 
 def venice_p2_refine(
-    window_text: str,
+    context_text: str,
+    new_text: str,
     *,
     project_card: str,
     model: Optional[str] = None,
@@ -94,9 +98,13 @@ def venice_p2_refine(
     user = (
         "Project card (context only — do not invent beyond it):\n"
         f"{project_card}\n\n"
-        "Refine this rolling ASR window into clean turns:\n\n"
-        "<<<WINDOW>>>\n"
-        f"{window_text}\n"
+        "Already-refined earlier context (do NOT repeat these lines):\n"
+        "<<<CONTEXT>>>\n"
+        f"{context_text or '(none — this is the first pass)'}\n"
+        "<<<END>>>\n\n"
+        "NEW raw turns to refine (output ONLY these, cleaned):\n"
+        "<<<NEW>>>\n"
+        f"{new_text}\n"
         "<<<END>>>"
     )
     payload = {
@@ -130,40 +138,54 @@ def run_refine_pass(
     db: Any,
     *,
     anchor_raw_id: int,
+    after_raw_id: Optional[int] = None,
     topic_score: Optional[float],
     home_terms: List[str],
     force_stub: bool = False,
 ) -> Dict[str, Any]:
-    """One P2 refine pass; persists p2_refine_passes row. Returns row dict."""
+    """One P2 refine pass over NEW turns only; persists p2_refine_passes row.
+
+    The full rolling window (from anchor_raw_id, capped) is used as *context*,
+    but only segments with id > after_raw_id are emitted — each pass is the
+    delta vs the previous pass, not a re-render of the whole window.
+    """
     ensure_p2_tables(db)
     settings = get_settings(db)
     max_segments = int(settings["p2_refine_max_segments_i"])
     segments = _fetch_window_segments(
         db, start_raw_id=anchor_raw_id, max_segments=max_segments
     )
-    window_text = _format_window(segments)
-    project_card = settings["p2_project_card"]
-    model = settings["p2_refine_model"] or None
+    after = int(after_raw_id) if after_raw_id is not None else None
+    if after is None:
+        after = int(anchor_raw_id) - 1
+    context_segments = [s for s in segments if int(s["id"]) <= after]
+    new_segments = [s for s in segments if int(s["id"]) > after]
 
-    if not window_text.strip():
+    if not new_segments:
         return {
             "id": None,
             "pass_index": None,
             "mode": "stub",
             "text": "",
             "topic_score": topic_score,
-            "window_end_raw_id": anchor_raw_id,
+            "window_end_raw_id": after,
             "skipped": True,
         }
+
+    # Prompt economy: tail of context is what matters for the new turns
+    context_text = _format_window(context_segments[-40:])
+    new_text = _format_window(new_segments)
+    project_card = settings["p2_project_card"]
+    model = settings["p2_refine_model"] or None
 
     mode = "stub"
     text = ""
     if force_stub:
-        text = stub_p2_refine(window_text)
+        text = stub_p2_refine(new_text)
     else:
         try:
             text, mode = venice_p2_refine(
-                window_text, project_card=project_card, model=model
+                context_text, new_text, project_card=project_card, model=model
             )
         except (
             RuntimeError,
@@ -174,11 +196,11 @@ def run_refine_pass(
             TimeoutError,
         ) as e:
             logger.warning("P2 Venice refine failed (%s); stub", e)
-            text = stub_p2_refine(window_text)
+            text = stub_p2_refine(new_text)
             mode = "stub"
 
-    window_end = int(segments[-1]["id"]) if segments else int(anchor_raw_id)
-    window_start = int(segments[0]["id"]) if segments else int(anchor_raw_id)
+    window_end = int(new_segments[-1]["id"])
+    window_start = int(new_segments[0]["id"])
 
     with db.get_db() as conn:
         cur = conn.execute(

@@ -20,9 +20,20 @@ Goal: after the filter **escalates once**, stop filter work and start **P2 conve
 ## Refine cadence
 
 - After escalate, P2 mode starts with `state='on'`, home topic seeded from the escalate window (salient + window text).
-- Every **`p2_refine_every_turns`** raw segments (default **5**) **and** breaker `on`: run one refine pass over the **current window** (escalate anchor → latest).
-- Window is capped by **`p2_refine_max_segments`** (default 80) so Venice stays cheap; oldest turns drop out of the prompt but stay in P0/P1 panes.
+- Every **`p2_refine_every_turns`** raw segments (default **5**) **and** breaker `on`: run one refine pass.
+- **Delta, not duplicate:** the rolling window (escalate anchor → latest, capped by **`p2_refine_max_segments`**, default 80) is sent as *context*, but each pass **emits only turns newer than the previous pass** (`p2_topic_state.last_pass_raw_id`). The pane appends new refined turns instead of re-rendering the window.
+- While the breaker is `off`, coverage still advances — off-topic stretches are never refined into the pane when talk returns on-topic.
+- P2 ticks run on the **refine thread** (queued by ingest), so a slow Venice pass never blocks intake — same rule as P1.
 - Output: cleaned turns with better punctuation / speaker labels / light topic note — **not** CRM/Tasks writes.
+
+## Refresh survival
+
+All P2 pane state is DB-backed and rehydrated via `GET /api/status` → `p2`:
+`hits` (recent `p2_score_events`), `review` (latest, with evaluator
+mode/rationale parsed from `decision_note`), `refine_passes` (recent),
+`breaker_state` (from `p2_topic_state`), plus derived `mode` /
+`escalated_latched` / `awaiting_review` so a refresh (or server restart)
+shows the same pane.
 
 ## Home topic + breaker (hysteresis)
 

@@ -11,15 +11,17 @@ Copyright (C) 2025-2026 Mark "Rizzn" Hopkins, Athena Vernal, John Casaretto
 from __future__ import annotations
 
 import logging
+import re
 import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from .db_util import ingest_event, open_db, reset_db, snapshot
-from .p2_filters.breaker import TopicBreaker, start_topic_state
+from .p2_filters.breaker import TopicBreaker, get_topic_state, start_topic_state
 from .p2_filters.evaluator import evaluate_review
-from .p2_filters.refine_engine import run_refine_pass
-from .p2_filters.scorer import P2Scorer, SegmentView
+from .p2_filters.refine_engine import list_refine_passes, run_refine_pass
+from .p2_filters.review import list_reviews
+from .p2_filters.scorer import P2Scorer, SegmentView, list_score_events
 from .p2_filters.store import get_settings as p2_get_settings
 from .refine import refine_unrefined
 from .streamer import stream_events
@@ -62,6 +64,8 @@ class Orchestrator:
         self._p2_anchor_raw_id = 0
         self._p2_turns_since_pass = 0
         self._p2_pending_batch: List[str] = []
+        self._p2_latest_raw_id = 0
+        self._p2_due_batches: List[str] = []
 
     def set_conversation(self, conversation_id: str, data_log: Path) -> None:
         """Select which NDJSON feed Play will stream (must not be mid-play)."""
@@ -106,6 +110,40 @@ class Orchestrator:
                 self.p2_breaker.last_topic_score if self.p2_breaker else None
             ),
         }
+        # Rehydrate detail from DB so the P2 pane survives page refresh
+        # (and server restart) — runtime rows live until next Play/Reset.
+        if self.db is not None:
+            try:
+                hits = list_score_events(self.db, limit=40)
+                reviews = list_reviews(self.db)
+                latest_review = reviews[0] if reviews else None
+                if latest_review:
+                    note = latest_review.get("decision_note") or ""
+                    m = re.match(r"^\[([^\]]+)\]\s*(.*)$", note, re.S)
+                    if m:
+                        latest_review["evaluator_mode"] = m.group(1)
+                        latest_review["evaluator_rationale"] = m.group(2).strip()
+                    latest_review["escalate"] = (
+                        latest_review.get("status") == "escalated"
+                    )
+                topic = get_topic_state(self.db)
+                passes = list_refine_passes(self.db, limit=6)
+                p2["hits"] = hits
+                p2["review"] = latest_review
+                p2["refine_passes"] = list(reversed(passes))  # chronological
+                if topic:
+                    p2["mode"] = True
+                    if not p2["breaker_state"]:
+                        p2["breaker_state"] = topic.get("state")
+                if latest_review and latest_review.get("status") == "escalated":
+                    p2["escalated_latched"] = True
+                if latest_review and latest_review.get("status") == "pending":
+                    p2["awaiting_review"] = True
+                if not p2["running_score"] and hits:
+                    if latest_review and latest_review.get("status") == "pending":
+                        p2["running_score"] = hits[-1].get("running_score") or 0
+            except Exception:
+                logger.exception("p2 status hydration failed")
         return {
             "state": self.state,
             "llm_mode": self.llm_mode,
@@ -132,6 +170,8 @@ class Orchestrator:
         self._p2_anchor_raw_id = 0
         self._p2_turns_since_pass = 0
         self._p2_pending_batch = []
+        self._p2_latest_raw_id = 0
+        self._p2_due_batches = []
         self.state = "idle"
         self.llm_mode = "unknown"
         self.speed = 1.0
@@ -180,6 +220,8 @@ class Orchestrator:
             self._p2_anchor_raw_id = 0
             self._p2_turns_since_pass = 0
             self._p2_pending_batch = []
+            self._p2_latest_raw_id = 0
+            self._p2_due_batches = []
             self.state = "playing"
             self._ingest_done.clear()
             self._stop.clear()
@@ -253,9 +295,11 @@ class Orchestrator:
                                 end_time=float(seg.get("end") or 0),
                             )
                             p2_results.append(self.p2_scorer.observe(view))
-                    # P2 refine mode: batch turns for breaker + cadence
-                    p2_refine_events = []
+                    # P2 refine mode: batch turns for breaker + cadence.
+                    # The tick itself runs on the refine thread so a slow
+                    # Venice pass never blocks intake (same rule as P1).
                     if self.p2_mode and raw_ids and segs:
+                        self._p2_latest_raw_id = max(int(r) for r in raw_ids)
                         for rid, seg in zip(raw_ids, segs):
                             self._p2_pending_batch.append(str(seg.get("text") or ""))
                             self._p2_turns_since_pass += 1
@@ -265,13 +309,11 @@ class Orchestrator:
                             batch_text = " ".join(self._p2_pending_batch)
                             self._p2_pending_batch = []
                             self._p2_turns_since_pass = 0
-                            p2_refine_events = self._p2_tick(batch_text)
+                            self._p2_due_batches.append(batch_text)
                 for rid in raw_ids:
                     row = next((r for r in snap_raw if r["id"] == rid), None)
                     if row:
                         self._emit({"type": "raw", "row": row})
-                for ev2 in p2_refine_events:
-                    self._emit(ev2)
                 for pr in p2_results:
                     for hit in pr.deltas:
                         self._emit(
@@ -380,10 +422,11 @@ class Orchestrator:
         if self.db is None or self.p2_mode:
             return
         settings = p2_get_settings(self.db)
+        window_ids = decided_review.get("window_raw_ids") or []
         anchor = int(
-            decided_review.get("trip_raw_segment_id")
-            or (decided_review.get("window_raw_ids") or [0])[-1]
-            or 0
+            window_ids[0]
+            if window_ids
+            else (decided_review.get("trip_raw_segment_id") or 0)
         )
         window_text = "\n".join(
             f"[{s.get('speaker_name') or '?'}] {(s.get('text') or '').strip()}"
@@ -394,6 +437,8 @@ class Orchestrator:
             home_text=window_text,
             project_card=settings["p2_project_card"],
             anchor_raw_id=anchor,
+            # First pass covers the whole trip window; later passes are deltas.
+            last_pass_raw_id=anchor - 1,
         )
         self.p2_mode = True
         self._p2_anchor_raw_id = anchor
@@ -449,6 +494,10 @@ class Orchestrator:
             )
 
         if not self.p2_breaker.is_on:
+            # Off-topic stretch: advance coverage so it is never refined into
+            # the pane when the breaker flips back on.
+            if self._p2_latest_raw_id:
+                self.p2_breaker.mark_pass(self._p2_latest_raw_id)
             return events
 
         settings = p2_get_settings(self.db)
@@ -456,6 +505,7 @@ class Orchestrator:
             row = run_refine_pass(
                 self.db,
                 anchor_raw_id=self._p2_anchor_raw_id,
+                after_raw_id=self.p2_breaker.last_pass_raw_id,
                 topic_score=br.get("topic_score"),
                 home_terms=self.p2_breaker.home_terms,
                 force_stub=self.force_stub,
@@ -474,6 +524,7 @@ class Orchestrator:
         if row.get("skipped"):
             return events
 
+        self.p2_breaker.mark_pass(int(row.get("window_end_raw_id") or 0))
         # Home topic drifts only on successful on-topic refine passes
         self.p2_breaker.update_home(
             str(row.get("text") or ""), settings["p2_project_card"]
@@ -534,6 +585,16 @@ class Orchestrator:
             while self._still_this_run(run_id):
                 if should_stop():
                     break
+                # Drain due P2 ticks first — LLM runs here, off the ingest
+                # thread and outside the DB write lock.
+                with self._db_write_lock:
+                    due = list(self._p2_due_batches)
+                    self._p2_due_batches = []
+                for batch in due:
+                    if should_stop():
+                        break
+                    for ev2 in self._p2_tick(batch):
+                        self._emit(ev2)
                 created = refine_unrefined(
                     self.db,
                     force_stub=self.force_stub,
@@ -549,6 +610,18 @@ class Orchestrator:
                 if self._ingest_done.is_set():
                     if should_stop():
                         break
+                    # A P2 batch can become due on the final ingest events —
+                    # drain before deciding the thread is finished.
+                    with self._db_write_lock:
+                        tail_due = list(self._p2_due_batches)
+                        self._p2_due_batches = []
+                    for batch in tail_due:
+                        if should_stop():
+                            break
+                        for ev2 in self._p2_tick(batch):
+                            self._emit(ev2)
+                    if tail_due:
+                        continue
                     created = refine_unrefined(
                         self.db,
                         force_stub=self.force_stub,

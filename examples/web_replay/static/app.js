@@ -755,6 +755,45 @@
     log("INFO", "Venice API key cleared from DB");
   };
 
+  function hydrateP2(p2) {
+    if (!p2) return;
+    if (Array.isArray(p2.hits)) {
+      p2Hits = p2.hits.map((h) => ({
+        rule_kind: h.rule_kind,
+        delta: h.delta,
+        running_score: h.running_score,
+        evidence: h.evidence || {},
+      }));
+    }
+    if (p2.review) p2Review = p2.review;
+    if (Array.isArray(p2.refine_passes)) {
+      p2RefinePasses = p2.refine_passes;
+    }
+    if (p2.breaker_state) {
+      p2Breaker.state = p2.breaker_state;
+      if (typeof p2.topic_score === "number") {
+        p2Breaker.topic_score = p2.topic_score;
+      }
+      setBreakerBadge(p2Breaker.state, p2Breaker.topic_score);
+    }
+    setP2Badge(
+      p2.running_score || 0,
+      !!p2.awaiting_review,
+      !!p2.escalated_latched
+    );
+    renderP2Pane();
+    renderP2ReviewPane();
+    const n = p2RefinePasses.length;
+    if (n > 0 || p2Review) {
+      log(
+        "P2",
+        `Hydrated P2 state — ${p2Hits.length} factoids, ` +
+          `${p2Review ? `review #${p2Review.id} (${p2Review.status})` : "no review"}, ` +
+          `${n} refine pass(es), breaker=${p2Breaker.state || "—"}`
+      );
+    }
+  }
+
   function hydrate() {
     return fetch("/api/status")
       .then((r) => r.json())
@@ -767,6 +806,7 @@
         setBusy(d.state === "playing");
         applySettings(d);
         if (d.snapshot) renderSnapshot(d.snapshot);
+        hydrateP2(d.p2);
         const n = (d.counts && d.counts.raw) || 0;
         if (n > 0) {
           log("INFO", `Hydrated ${n} raw / ${(d.counts && d.counts.refined) || 0} refined from DB`);

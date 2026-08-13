@@ -83,11 +83,21 @@ def get_topic_state(db: Any) -> Optional[Dict[str, Any]]:
 
 
 def start_topic_state(
-    db: Any, *, home_text: str, project_card: str, anchor_raw_id: int
+    db: Any,
+    *,
+    home_text: str,
+    project_card: str,
+    anchor_raw_id: int,
+    last_pass_raw_id: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Seed home topic at escalate (window text + project card nouns)."""
+    """Seed home topic at escalate (window text + project card nouns).
+
+    last_pass_raw_id: refine passes emit only segments after this id. Pass
+    window_start - 1 so the first pass covers the whole trip window.
+    """
     ensure_p2_tables(db)
     terms = _top_terms(f"{home_text}\n{project_card}", limit=24)
+    last_id = int(last_pass_raw_id) if last_pass_raw_id is not None else int(anchor_raw_id)
     with db.get_db() as conn:
         cur = conn.execute(
             """
@@ -96,7 +106,7 @@ def start_topic_state(
                  last_pass_raw_id)
             VALUES ('on', ?, ?, 0, 0, ?)
             """,
-            (home_text[:4000], json.dumps(terms), int(anchor_raw_id)),
+            (home_text[:4000], json.dumps(terms), last_id),
         )
         conn.commit()
         row = conn.execute(
@@ -143,11 +153,32 @@ class TopicBreaker:
         self.home_terms: List[str] = list((st or {}).get("home_terms") or [])
         self.on_streak = int((st or {}).get("on_streak") or 0)
         self.off_streak = int((st or {}).get("off_streak") or 0)
+        self.last_pass_raw_id = int((st or {}).get("last_pass_raw_id") or 0)
         self.last_topic_score: Optional[float] = None
 
     @property
     def is_on(self) -> bool:
         return self.state == "on"
+
+    def mark_pass(self, raw_id: int) -> None:
+        """Record refine coverage — next pass emits only segments after this."""
+        self.last_pass_raw_id = int(raw_id)
+        with self.db.get_db() as conn:
+            row = conn.execute(
+                "SELECT id FROM p2_topic_state ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            if not row:
+                return
+            rid = row["id"] if hasattr(row, "keys") else row[0]
+            conn.execute(
+                """
+                UPDATE p2_topic_state SET
+                    last_pass_raw_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (self.last_pass_raw_id, rid),
+            )
+            conn.commit()
 
     def _persist(self) -> None:
         with self.db.get_db() as conn:

@@ -323,12 +323,15 @@ def test_intake_not_blocked_by_slow_refine(tmp_path, mini_log, monkeypatch):
     )
     t0 = time.time()
     orch.play()
+    # Setup (schema + seed) is synchronous and environment-dependent; the
+    # decoupling budget applies to streaming after play() returns.
+    t_stream = time.time()
     deadline = time.time() + 15
     while len(raw_times) < 2 and time.time() < deadline:
         time.sleep(0.02)
     # Both raws should land well before 2*0.35s if ingest is unblocked
     assert len(raw_times) >= 2
-    assert raw_times[-1] - t0 < 0.5
+    assert raw_times[-1] - t_stream < 0.5
     while orch.state == "playing" and time.time() < deadline:
         time.sleep(0.05)
     assert orch.state == "done"
@@ -374,7 +377,7 @@ def test_controls_route(client):
     r = client.get("/api/controls")
     assert r.status_code == 200
     data = r.get_json()
-    assert "speed" in data
+    assert data["speed"] == 1.0
     assert "force_stub" in data
     assert "venice_key_present" in data
 
@@ -387,10 +390,19 @@ def test_reset_route(client):
     assert client.post("/api/reset").get_json()["counts"]["raw"] == 0
 
 
+def test_play_rejects_insane_speed(client):
+    r = client.post("/api/play", json={"speed": 5000, "force_stub": True})
+    assert r.status_code == 200
+    # clamped to 1.0 — do not accept leftover smoke values
+    assert client.get("/api/status").get_json()["speed"] == 1.0
+    client.post("/api/stop")
+
+
 def test_play_and_stop_routes(client):
     r = client.post("/api/play", json={"speed": 1000, "force_stub": True})
     assert r.status_code == 200
     assert client.post("/api/stop").status_code == 200
+    assert client.get("/api/status").get_json()["state"] == "stopped"
 
 
 def test_index_html(client):

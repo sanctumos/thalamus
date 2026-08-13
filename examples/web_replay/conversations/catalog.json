@@ -1,0 +1,31 @@
+{
+  "conversations": [
+    {
+      "id": "cochlea-10min-committee",
+      "label": "Cochlea 10-min committee (default)",
+      "file": "../../raw_data_log.json",
+      "default": true,
+      "notes": "Original Path A replay feed from examples/raw_data_log.json"
+    },
+    {
+      "id": "vertex-security-pilot-2026-08-03",
+      "label": "Vertex security pilot \u00b7 Aug 3 \u00b7 4:24 PM",
+      "file": "vertex-security-pilot-2026-08-03.ndjson",
+      "omi_conversation_id": "13041a6c-820b-4dc4-8644-f9fee88eac27",
+      "started_at": "2026-08-03 21:24:57.256157+00:00",
+      "finished_at": "2026-08-03 21:54:43.272994+00:00",
+      "title": "Vertex Security Pilot and Splunk Integration Plan",
+      "notes": "Omi human convo \u2192 Cochlea NDJSON (one event per transcript segment)"
+    },
+    {
+      "id": "omi-live-webhook-mortgage-2026-08-11",
+      "label": "P0 raw \u00b7 Omi live webhook \u00b7 mortgage\u2192Jim \u00b7 Aug 11",
+      "file": "omi-live-webhook-mortgage-2026-08-11.ndjson",
+      "started_at": "2026-08-11T19:39:09.627044Z",
+      "finished_at": "2026-08-11T19:57:36.941500Z",
+      "title": "Live realtime webhook capture (mortgage + catch-up)",
+      "notes": "P0=raw realtime webhook (not cleaned). Seam at ~t=626s: video narration \u2192 Jim conversation.",
+      "default": false
+    }
+  ]
+}
