@@ -23,17 +23,33 @@ Goal: after the filter **escalates once**, stop filter work and start **P2 conve
 - Every **`p2_refine_every_turns`** raw segments (default **5**) **and** breaker `on`: run one refine pass.
 - **Delta, not duplicate:** the rolling window (escalate anchor → latest, capped by **`p2_refine_max_segments`**, default 80) is sent as *context*, but each pass **emits only turns newer than the previous pass** (`p2_topic_state.last_pass_raw_id`). The pane appends new refined turns instead of re-rendering the window.
 - While the breaker is `off`, coverage still advances — off-topic stretches are never refined into the pane when talk returns on-topic.
-- P2 ticks run on the **refine thread** (queued by ingest), so a slow Venice pass never blocks intake — same rule as P1.
 - Output: cleaned turns with better punctuation / speaker labels / light topic note — **not** CRM/Tasks writes.
+
+## Thread topology — one thread per layer (patent posture)
+
+Each Px runs on its own thread; no layer's LLM latency can block another layer:
+
+| Thread | Layer | Work |
+|---|---|---|
+| `web-replay-ingest` | **P0** | Intake, raw segment writes, non-LLM P2 filter scoring (microseconds — the real-time gate stays inline by design), enqueue P2 work. **No LLM calls, ever.** |
+| `web-replay-refine` | **P1** | Light ASR cleanup groups only. May lag under speed; `p1_pending` count surfaces lag in the UI. |
+| `web-replay-p2` | **P2** | Queue consumer: `("evaluate", review_id)` → internal evaluator (Venice, off intake); on escalate → P2 mode. `("tick", batch_text, latest_raw_id)` → breaker observe + refine pass. |
+
+- Ingest hands P2 work to the worker through a `queue.Queue` (fresh instance per Play so a stale worker can never eat a new run's items). FIFO order guarantees the evaluate decision is processed before any tick it enables.
+- **Batching starts at trip, not at escalation** — turns spoken while the evaluator is deciding belong to the post-trip conversation; a decline discards the pending batch.
+- Stop is cooperative on all three threads; an in-flight Venice call may finish (same rule as before).
 
 ## Refresh survival
 
 All P2 pane state is DB-backed and rehydrated via `GET /api/status` → `p2`:
 `hits` (recent `p2_score_events`), `review` (latest, with evaluator
 mode/rationale parsed from `decision_note`), `refine_passes` (recent),
-`breaker_state` (from `p2_topic_state`), plus derived `mode` /
+`breaker` (state + on/off streaks + configured thresholds from
+`p2_topic_state` — the breaker persists streaks every tick, not just on
+flips, so the badge is exact after refresh), plus derived `mode` /
 `escalated_latched` / `awaiting_review` so a refresh (or server restart)
-shows the same pane.
+shows the same pane. P1 lag hydrates from `counts.p1_pending` (raws not yet
+covered by `segment_usage`) and streams live via `p1_pending` events.
 
 ## Home topic + breaker (hysteresis)
 

@@ -129,6 +129,7 @@ button.btn-menu[aria-expanded="true"] {
 #key-badge { min-width: 8.5rem; }
 .badge.muted { color: var(--muted); }
 .badge.ok { color: var(--accent); border-color: #2a5a52; }
+.p1-pending-badge { color: var(--warn); border-color: var(--warn); }
 
 .settings-dialog {
   border: 1px solid var(--line);

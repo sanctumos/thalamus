@@ -352,6 +352,180 @@ def test_orchestrator_reset(tmp_path, mini_log):
     assert st["counts"]["raw"] == 0
 
 
+def _write_trip_log(path) -> None:
+    """11 segments: monologue → dialog seam that trips the seeded P2 pack,
+    then 5 post-trip turns so one P2 refine tick becomes due."""
+    segs = [
+        # (speaker_id, speaker, duration, text)
+        (0, "SPEAKER_0", 25.0, "The market recap continues with bond yields and another long explainer about rates."),
+        (0, "SPEAKER_0", 25.0, "More monologue about housing prices and the broader economy this week."),
+        (0, "SPEAKER_0", 25.0, "Still the video explainer running through amortization tables in detail."),
+        (1, "SPEAKER_1", 2.0, "hey dude"),
+        (1, "SPEAKER_1", 3.0, "can you knock out the upload and email it to me"),
+        (0, "SPEAKER_0", 3.0, "sure, put them all together in docket today"),
+        (1, "SPEAKER_1", 3.0, "I will add some different columns to the docket queue"),
+        (0, "SPEAKER_0", 3.0, "the rocketreach export is ready for review"),
+        (1, "SPEAKER_1", 3.0, "great, upload those to the shared drive"),
+        (0, "SPEAKER_0", 3.0, "modality list is cleaned up too"),
+        (1, "SPEAKER_1", 3.0, "send that over when you can"),
+    ]
+    lines = []
+    t = 0.0
+    for i, (sid, name, dur, text) in enumerate(segs):
+        ts = f"2025-03-26T22:{48 + (i // 60):02d}:{(i % 60):02d}.000000Z"
+        lines.append(
+            json.dumps(
+                {
+                    "session_id": "trip-session",
+                    "log_timestamp": ts,
+                    "segments": [
+                        {
+                            "text": text,
+                            "speaker": name,
+                            "speaker_id": sid,
+                            "start": t,
+                            "end": t + dur,
+                        }
+                    ],
+                }
+            )
+        )
+        t += dur
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+@pytest.fixture
+def trip_log(tmp_path):
+    p = tmp_path / "trip.json"
+    _write_trip_log(p)
+    return p
+
+
+def _wait_done(orch, timeout=15.0):
+    deadline = time.time() + timeout
+    while orch.state == "playing" and time.time() < deadline:
+        time.sleep(0.05)
+
+
+def test_secrets_io_does_not_repoint_global_db(tmp_path, mini_log):
+    """Regression: get/set_secret must not mutate database.DB_PATH.
+
+    secrets_store used to call db_util.open_db(path), which rebinds the
+    process-global database module. Every load_venice_key (per P1 group, per
+    evaluator run) silently redirected all replay reads/writes to the secrets
+    file — invisible in the server (same file), corrupting elsewhere.
+    """
+    import database as db_mod
+    from web_replay.db_util import load_database
+    from web_replay.secrets_store import (
+        VENICE_KEY_NAME,
+        get_secret,
+        secret_hint,
+        set_secret,
+    )
+
+    replay_db = tmp_path / "replay.db"
+    load_database(replay_db)
+    secrets_db = tmp_path / "secrets.db"
+    set_secret(secrets_db, VENICE_KEY_NAME, "isolation-key")
+    assert db_mod.DB_PATH == str(replay_db)
+    assert get_secret(secrets_db, VENICE_KEY_NAME) == "isolation-key"
+    assert secret_hint(secrets_db, VENICE_KEY_NAME).endswith("key")
+    assert db_mod.DB_PATH == str(replay_db)
+
+
+def test_evaluator_runs_off_ingest_thread(tmp_path, trip_log, monkeypatch):
+    """A slow evaluator must not delay P0 intake — it runs on the P2 thread."""
+    import web_replay.orchestrator as orch_mod
+
+    def slow_evaluate(db, review_id, **kwargs):
+        time.sleep(1.0)
+        return {
+            "id": review_id,
+            "status": "escalated",
+            "escalate": True,
+            "evaluator_mode": "fake",
+            "evaluator_rationale": "slow fake evaluator",
+            "trip_raw_segment_id": 6,
+            "window_raw_ids": [],
+            "window_segments": [],
+        }
+
+    monkeypatch.setattr(orch_mod, "evaluate_review", slow_evaluate)
+
+    raw_times: list[float] = []
+    decided_times: list[float] = []
+    orch = Orchestrator(
+        db_path=tmp_path / "p2thread.db",
+        data_log=trip_log,
+        speed=1000.0,
+        force_stub=True,
+    )
+
+    def rec(e):
+        if e.get("type") == "raw":
+            raw_times.append(time.time())
+        elif e.get("type") == "p2_review" and e.get("decided"):
+            decided_times.append(time.time())
+
+    orch.on_event(rec)
+    orch.play()
+    # All 11 raws must stream regardless of the evaluator's 1.0s sleep. The
+    # sharp decoupling check: raws after the trip (index 5) must not wait for
+    # the evaluator — if it ran on the ingest thread they'd be ≥1.0s behind.
+    deadline = time.time() + 10
+    while len(raw_times) < 11 and time.time() < deadline:
+        time.sleep(0.02)
+    assert len(raw_times) == 11
+    assert raw_times[-1] - raw_times[5] < 0.9
+    # The decision arrives later, on the P2 thread, and still escalates.
+    while not decided_times and time.time() < deadline:
+        time.sleep(0.02)
+    assert decided_times and decided_times[0] >= raw_times[5]
+    _wait_done(orch)
+    st = orch.status()
+    assert st["p2"]["mode"] is True
+    assert st["p2"]["escalated_latched"] is True
+
+
+def test_p2_tick_pipeline_on_worker_thread(tmp_path, trip_log):
+    """Full path with real (heuristic) evaluator + stub refine: trip →
+    escalate on P2 thread → every-5-turns tick → refine pass row + breaker."""
+    orch = Orchestrator(
+        db_path=tmp_path / "p2tick.db",
+        data_log=trip_log,
+        speed=1000.0,
+        force_stub=True,
+    )
+    events: list[dict] = []
+    orch.on_event(events.append)
+    orch.play()
+    _wait_done(orch)
+    # P2 worker may trail the refine thread's "done" by a few ms — poll.
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        st = orch.status()
+        if st["p2"].get("refine_passes"):
+            break
+        time.sleep(0.05)
+    st = orch.status()
+    p2 = st["p2"]
+    assert p2["mode"] is True
+    assert p2["escalated_latched"] is True
+    passes = p2.get("refine_passes") or []
+    assert passes, "expected at least one P2 refine pass"
+    assert passes[0]["mode"] == "stub"
+    assert p2.get("breaker_state") == "on"
+    br = p2.get("breaker") or {}
+    assert br.get("off_need") == 3 and br.get("on_need") == 2
+    # P1 fully drained on natural completion — no pending lag remains.
+    assert st["counts"]["p1_pending"] == 0
+    assert st["counts"]["refined"] >= 1
+    assert any(
+        e.get("type") == "p2_breaker" and "off_need" in e for e in events
+    ), "breaker events should carry streak thresholds"
+
+
 @pytest.fixture
 def client(tmp_path, mini_log):
     app = create_app(

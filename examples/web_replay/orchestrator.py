@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-Play orchestrator — time-sim ingest and refine run on separate threads.
+Play orchestrator — one thread per layer: P0 ingest, P1 refine, P2 worker.
 
-Intake is never blocked on Venice/stub latency; refine may lag.
+P0 (ingest thread): intake + non-LLM P2 filter scoring only — never an LLM call.
+P1 (refine thread): light ASR cleanup, Venice-bound, may lag under speed.
+P2 (worker thread): evaluator decisions + breaker + refine passes, fed by a
+queue so no P2 LLM latency ever touches P0 intake or P1 cleanup.
 Stop is cooperative and must return quickly (interruptible waits; one group per refine).
 
 Copyright (C) 2025-2026 Mark "Rizzn" Hopkins, Athena Vernal, John Casaretto
@@ -11,12 +14,14 @@ Copyright (C) 2025-2026 Mark "Rizzn" Hopkins, Athena Vernal, John Casaretto
 from __future__ import annotations
 
 import logging
+import queue
 import re
 import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from .db_util import ingest_event, open_db, reset_db, snapshot
+from .llm import set_secrets_db_path
 from .p2_filters.breaker import TopicBreaker, get_topic_state, start_topic_state
 from .p2_filters.evaluator import evaluate_review
 from .p2_filters.refine_engine import list_refine_passes, run_refine_pass
@@ -48,6 +53,8 @@ class Orchestrator:
         self.force_stub = force_stub
         self._ingest_thread: Optional[threading.Thread] = None
         self._refine_thread: Optional[threading.Thread] = None
+        self._p2_thread: Optional[threading.Thread] = None
+        self._p2_queue: "queue.Queue[tuple]" = queue.Queue()
         self._stop = threading.Event()
         self._ingest_done = threading.Event()
         self._handlers: List[EventHandler] = []
@@ -65,7 +72,6 @@ class Orchestrator:
         self._p2_turns_since_pass = 0
         self._p2_pending_batch: List[str] = []
         self._p2_latest_raw_id = 0
-        self._p2_due_batches: List[str] = []
 
     def set_conversation(self, conversation_id: str, data_log: Path) -> None:
         """Select which NDJSON feed Play will stream (must not be mid-play)."""
@@ -86,6 +92,7 @@ class Orchestrator:
         """Attach existing demo DB without wiping (reload / stop / status)."""
         if self.db is None:
             self.db = open_db(self.db_path)
+            set_secrets_db_path(self.db_path)
             self.p2_scorer = P2Scorer(self.db)
         return self.db
 
@@ -110,6 +117,12 @@ class Orchestrator:
                 self.p2_breaker.last_topic_score if self.p2_breaker else None
             ),
         }
+        p1_pending = 0
+        if self.db is not None:
+            try:
+                p1_pending = int(self.db.count_unrefined_segments())
+            except Exception:
+                logger.exception("p1 pending count failed")
         # Rehydrate detail from DB so the P2 pane survives page refresh
         # (and server restart) — runtime rows live until next Play/Reset.
         if self.db is not None:
@@ -135,6 +148,19 @@ class Orchestrator:
                     p2["mode"] = True
                     if not p2["breaker_state"]:
                         p2["breaker_state"] = topic.get("state")
+                    try:
+                        s = p2_get_settings(self.db)
+                        p2["breaker"] = {
+                            "state": topic.get("state"),
+                            "on_streak": int(topic.get("on_streak") or 0),
+                            "off_streak": int(topic.get("off_streak") or 0),
+                            "on_score": float(s["p2_breaker_on_score_f"]),
+                            "off_score": float(s["p2_breaker_off_score_f"]),
+                            "on_need": int(s["p2_breaker_on_streak_i"]),
+                            "off_need": int(s["p2_breaker_off_streak_i"]),
+                        }
+                    except Exception:
+                        logger.exception("breaker settings hydration failed")
                 if latest_review and latest_review.get("status") == "escalated":
                     p2["escalated_latched"] = True
                 if latest_review and latest_review.get("status") == "pending":
@@ -156,6 +182,7 @@ class Orchestrator:
                 "raw": len(snap["raw_segments"]),
                 "refined": len(snap["refined_segments"]),
                 "usage": len(snap["segment_usage"]),
+                "p1_pending": p1_pending,
             },
             "p2": p2,
             "snapshot": snap,
@@ -164,6 +191,7 @@ class Orchestrator:
     def reset(self) -> Dict[str, Any]:
         self.stop()
         self.db = reset_db(self.db_path)
+        set_secrets_db_path(self.db_path)
         self.p2_scorer = P2Scorer(self.db)
         self.p2_mode = False
         self.p2_breaker = None
@@ -171,7 +199,7 @@ class Orchestrator:
         self._p2_turns_since_pass = 0
         self._p2_pending_batch = []
         self._p2_latest_raw_id = 0
-        self._p2_due_batches = []
+        self._fresh_p2_queue()
         self.state = "idle"
         self.llm_mode = "unknown"
         self.speed = 1.0
@@ -179,6 +207,11 @@ class Orchestrator:
         self._emit({"type": "console", "level": "INFO", "message": "DB reset"})
         self._emit({"type": "snapshot", **snapshot(self.db)})
         return self.status()
+
+    def _fresh_p2_queue(self) -> None:
+        # New instance per run: a stale P2 worker from a prior Play holds the
+        # old queue object and can never consume the new run's work items.
+        self._p2_queue = queue.Queue()
 
     def stop(self) -> None:
         """Request halt. Returns quickly; does not wait on Venice HTTP."""
@@ -192,13 +225,15 @@ class Orchestrator:
                 "message": "Stop — ingest/refine will halt (Venice call may finish one in-flight)",
             }
         )
-        for t in (self._ingest_thread, self._refine_thread):
+        for t in (self._ingest_thread, self._refine_thread, self._p2_thread):
             if t and t.is_alive():
                 t.join(timeout=0.5)
         if not (self._ingest_thread and self._ingest_thread.is_alive()):
             self._ingest_thread = None
         if not (self._refine_thread and self._refine_thread.is_alive()):
             self._refine_thread = None
+        if not (self._p2_thread and self._p2_thread.is_alive()):
+            self._p2_thread = None
         # Keep _stop set so any orphaned worker still exits; Play clears it.
         if self.db is not None:
             self._emit({"type": "snapshot", **snapshot(self.db)})
@@ -208,12 +243,14 @@ class Orchestrator:
             if self.state == "playing" and (
                 (self._ingest_thread and self._ingest_thread.is_alive())
                 or (self._refine_thread and self._refine_thread.is_alive())
+                or (self._p2_thread and self._p2_thread.is_alive())
             ):
                 return self.status()
             self.stop()
             self._run_id += 1
             run_id = self._run_id
             self.db = reset_db(self.db_path)
+            set_secrets_db_path(self.db_path)
             self.p2_scorer = P2Scorer(self.db)
             self.p2_mode = False
             self.p2_breaker = None
@@ -221,7 +258,7 @@ class Orchestrator:
             self._p2_turns_since_pass = 0
             self._p2_pending_batch = []
             self._p2_latest_raw_id = 0
-            self._p2_due_batches = []
+            self._fresh_p2_queue()
             self.state = "playing"
             self._ingest_done.clear()
             self._stop.clear()
@@ -237,8 +274,15 @@ class Orchestrator:
                 daemon=True,
                 name="web-replay-refine",
             )
+            self._p2_thread = threading.Thread(
+                target=self._run_p2,
+                args=(run_id,),
+                daemon=True,
+                name="web-replay-p2",
+            )
             self._ingest_thread.start()
             self._refine_thread.start()
+            self._p2_thread.start()
         self._emit(
             {
                 "type": "console",
@@ -246,7 +290,7 @@ class Orchestrator:
                 "message": (
                     f"Play start conversation={self.conversation_id or '?'} "
                     f"speed={self.speed} "
-                    "(ingest∥refine — intake not blocked on LLM)"
+                    "(ingest∥p1-refine∥p2 — intake never blocked on LLM)"
                 ),
             }
         )
@@ -296,9 +340,16 @@ class Orchestrator:
                             )
                             p2_results.append(self.p2_scorer.observe(view))
                     # P2 refine mode: batch turns for breaker + cadence.
-                    # The tick itself runs on the refine thread so a slow
-                    # Venice pass never blocks intake (same rule as P1).
-                    if self.p2_mode and raw_ids and segs:
+                    # Batching starts at TRIP (awaiting_review), not at
+                    # escalation — the evaluator decides asynchronously on the
+                    # P2 thread, and turns spoken during evaluation belong to
+                    # the post-trip conversation. A decline discards the
+                    # pending batch; FIFO queue order guarantees any tick
+                    # enqueued here is processed after the evaluate decision.
+                    p2_collecting = self.p2_mode or bool(
+                        self.p2_scorer and self.p2_scorer.awaiting_review
+                    )
+                    if p2_collecting and raw_ids and segs:
                         self._p2_latest_raw_id = max(int(r) for r in raw_ids)
                         for rid, seg in zip(raw_ids, segs):
                             self._p2_pending_batch.append(str(seg.get("text") or ""))
@@ -309,11 +360,19 @@ class Orchestrator:
                             batch_text = " ".join(self._p2_pending_batch)
                             self._p2_pending_batch = []
                             self._p2_turns_since_pass = 0
-                            self._p2_due_batches.append(batch_text)
+                            self._p2_queue.put(
+                                ("tick", batch_text, int(self._p2_latest_raw_id))
+                            )
+                    try:
+                        p1_pending = int(self.db.count_unrefined_segments())
+                    except Exception:
+                        p1_pending = None
                 for rid in raw_ids:
                     row = next((r for r in snap_raw if r["id"] == rid), None)
                     if row:
                         self._emit({"type": "raw", "row": row})
+                if p1_pending is not None:
+                    self._emit({"type": "p1_pending", "pending": p1_pending})
                 for pr in p2_results:
                     for hit in pr.deltas:
                         self._emit(
@@ -347,60 +406,11 @@ class Orchestrator:
                         review = pr.review
                         self._emit({"type": "p2_review", "review": review})
                         # Auto-evaluate (not HITL) unless doctor disabled it.
+                        # The evaluator is an LLM call — it runs on the P2
+                        # worker thread, never inline on P0 intake.
                         settings = p2_get_settings(self.db)
                         if settings.get("p2_auto_evaluate_b", True):
-                            try:
-                                decided = evaluate_review(
-                                    self.db, int(review["id"])
-                                )
-                                escalate = bool(
-                                    decided.get("escalate")
-                                    if "escalate" in decided
-                                    else decided.get("status") == "escalated"
-                                )
-                                if self.p2_scorer is not None:
-                                    self.p2_scorer.on_review_decided(escalate)
-                                self._emit(
-                                    {
-                                        "type": "p2_review",
-                                        "review": decided,
-                                        "decided": True,
-                                        "escalate": escalate,
-                                    }
-                                )
-                                self._emit(
-                                    {
-                                        "type": "console",
-                                        "level": "P2",
-                                        "message": (
-                                            f"Evaluator "
-                                            f"{decided.get('evaluator_mode') or '?'} → "
-                                            f"{'ESCALATE' if escalate else 'DECLINE'} — "
-                                            f"{(decided.get('evaluator_rationale') or decided.get('decision_note') or '')[:180]}"
-                                        ),
-                                    }
-                                )
-                                if escalate:
-                                    self._emit(
-                                        {
-                                            "type": "console",
-                                            "level": "INFO",
-                                            "message": (
-                                                "P2 filter latched off for this Play "
-                                                "(successful escalate — no further trips)"
-                                            ),
-                                        }
-                                    )
-                                    self._start_p2_mode(decided)
-                            except Exception as e:
-                                logger.exception("P2 evaluate failed")
-                                self._emit(
-                                    {
-                                        "type": "console",
-                                        "level": "ERROR",
-                                        "message": f"P2 evaluator failed: {e}",
-                                    }
-                                )
+                            self._p2_queue.put(("evaluate", int(review["id"])))
             if self._still_this_run(run_id):
                 self._emit(
                     {
@@ -416,6 +426,108 @@ class Orchestrator:
                 self._emit({"type": "console", "level": "ERROR", "message": str(e)})
         finally:
             self._ingest_done.set()
+
+    def _p2_evaluate(self, review_id: int) -> None:
+        """Run the internal evaluator on the P2 thread (LLM off P0/P1)."""
+        if self.db is None:
+            return
+        try:
+            decided = evaluate_review(self.db, review_id)
+        except Exception as e:
+            logger.exception("P2 evaluate failed")
+            self._emit(
+                {
+                    "type": "console",
+                    "level": "ERROR",
+                    "message": f"P2 evaluator failed: {e}",
+                }
+            )
+            return
+        escalate = bool(
+            decided.get("escalate")
+            if "escalate" in decided
+            else decided.get("status") == "escalated"
+        )
+        if self.p2_scorer is not None:
+            self.p2_scorer.on_review_decided(escalate)
+        if not escalate:
+            # Declined — turns batched during evaluation are not P2 material.
+            with self._db_write_lock:
+                self._p2_pending_batch = []
+                self._p2_turns_since_pass = 0
+        self._emit(
+            {
+                "type": "p2_review",
+                "review": decided,
+                "decided": True,
+                "escalate": escalate,
+            }
+        )
+        self._emit(
+            {
+                "type": "console",
+                "level": "P2",
+                "message": (
+                    f"Evaluator "
+                    f"{decided.get('evaluator_mode') or '?'} → "
+                    f"{'ESCALATE' if escalate else 'DECLINE'} — "
+                    f"{(decided.get('evaluator_rationale') or decided.get('decision_note') or '')[:180]}"
+                ),
+            }
+        )
+        if escalate:
+            self._emit(
+                {
+                    "type": "console",
+                    "level": "INFO",
+                    "message": (
+                        "P2 filter latched off for this Play "
+                        "(successful escalate — no further trips)"
+                    ),
+                }
+            )
+            self._start_p2_mode(decided)
+
+    def _run_p2(self, run_id: int) -> None:
+        """P2 layer thread: evaluator decisions + breaker/refine ticks.
+
+        Fed by a queue from the ingest thread. All P2 LLM latency lives here
+        so it never blocks P0 intake or P1 cleanup.
+        """
+        assert self.db is not None
+
+        def should_stop() -> bool:
+            return not self._still_this_run(run_id)
+
+        while True:
+            if should_stop():
+                return
+            try:
+                item = self._p2_queue.get(timeout=0.1)
+            except queue.Empty:
+                # Ingest finished and no P2 work remains — nothing more can
+                # be enqueued (trips/ticks only originate from live ingest).
+                if self._ingest_done.is_set() and self._p2_queue.empty():
+                    return
+                continue
+            if should_stop():
+                return
+            kind = item[0]
+            try:
+                if kind == "evaluate":
+                    self._p2_evaluate(int(item[1]))
+                elif kind == "tick":
+                    for ev in self._p2_tick(str(item[1]), int(item[2])):
+                        self._emit(ev)
+            except Exception as e:
+                logger.exception("P2 worker failed on %s", kind)
+                self._emit(
+                    {
+                        "type": "console",
+                        "level": "ERROR",
+                        "message": f"P2 {kind} failed: {e}",
+                    }
+                )
 
     def _start_p2_mode(self, decided_review: Dict[str, Any]) -> None:
         """Enter P2 refine mode after successful escalate."""
@@ -442,8 +554,8 @@ class Orchestrator:
         )
         self.p2_mode = True
         self._p2_anchor_raw_id = anchor
-        self._p2_turns_since_pass = 0
-        self._p2_pending_batch = []
+        # Keep _p2_turns_since_pass / _p2_pending_batch: turns batched while
+        # the evaluator was deciding count toward the first pass cadence.
         self.p2_breaker = TopicBreaker(self.db)
         self._emit(
             {
@@ -464,7 +576,7 @@ class Orchestrator:
             }
         )
 
-    def _p2_tick(self, batch_text: str) -> List[Dict[str, Any]]:
+    def _p2_tick(self, batch_text: str, latest_raw_id: int) -> List[Dict[str, Any]]:
         """Every-N-turns: breaker score, maybe flip, maybe refine pass."""
         events: List[Dict[str, Any]] = []
         if not self.p2_mode or self.db is None:
@@ -482,6 +594,12 @@ class Orchestrator:
                     "flipped": br.get("flipped", False),
                     "reason": br.get("reason") or "",
                     "detail": br.get("detail") or {},
+                    "on_streak": br.get("on_streak"),
+                    "off_streak": br.get("off_streak"),
+                    "on_score": br.get("on_score"),
+                    "off_score": br.get("off_score"),
+                    "on_need": br.get("on_need"),
+                    "off_need": br.get("off_need"),
                 }
             )
         if br.get("flipped"):
@@ -496,8 +614,12 @@ class Orchestrator:
         if not self.p2_breaker.is_on:
             # Off-topic stretch: advance coverage so it is never refined into
             # the pane when the breaker flips back on.
-            if self._p2_latest_raw_id:
-                self.p2_breaker.mark_pass(self._p2_latest_raw_id)
+            if latest_raw_id:
+                self.p2_breaker.mark_pass(latest_raw_id)
+                for ev in events:
+                    if ev.get("type") == "p2_breaker":
+                        ev["skipped"] = True
+                        ev["covered_through_raw_id"] = int(latest_raw_id)
             return events
 
         settings = p2_get_settings(self.db)
@@ -576,6 +698,7 @@ class Orchestrator:
                 self._emit({"type": "provenance", "row": u})
 
     def _run_refine(self, run_id: int) -> None:
+        """P1 layer thread — light ASR cleanup only. P2 has its own worker."""
         assert self.db is not None
 
         def should_stop() -> bool:
@@ -585,16 +708,6 @@ class Orchestrator:
             while self._still_this_run(run_id):
                 if should_stop():
                     break
-                # Drain due P2 ticks first — LLM runs here, off the ingest
-                # thread and outside the DB write lock.
-                with self._db_write_lock:
-                    due = list(self._p2_due_batches)
-                    self._p2_due_batches = []
-                for batch in due:
-                    if should_stop():
-                        break
-                    for ev2 in self._p2_tick(batch):
-                        self._emit(ev2)
                 created = refine_unrefined(
                     self.db,
                     force_stub=self.force_stub,
@@ -606,22 +719,16 @@ class Orchestrator:
                     break
                 self._emit_refine_results(created)
                 if created:
+                    try:
+                        with self._db_write_lock:
+                            pending = int(self.db.count_unrefined_segments())
+                        self._emit({"type": "p1_pending", "pending": pending})
+                    except Exception:
+                        logger.exception("p1 pending emit failed")
                     continue  # drain backlog without sleeping
                 if self._ingest_done.is_set():
                     if should_stop():
                         break
-                    # A P2 batch can become due on the final ingest events —
-                    # drain before deciding the thread is finished.
-                    with self._db_write_lock:
-                        tail_due = list(self._p2_due_batches)
-                        self._p2_due_batches = []
-                    for batch in tail_due:
-                        if should_stop():
-                            break
-                        for ev2 in self._p2_tick(batch):
-                            self._emit(ev2)
-                    if tail_due:
-                        continue
                     created = refine_unrefined(
                         self.db,
                         force_stub=self.force_stub,

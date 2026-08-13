@@ -229,6 +229,23 @@ def get_used_segment_ids() -> List[int]:
         logger.error(f"Error getting used segment IDs: {e}")
         return []
 
+def count_unrefined_segments() -> int:
+    """Count of raw segments not yet covered by any refined segment (P1 lag)."""
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT COUNT(*) FROM raw_segments rs
+                WHERE rs.id NOT IN (SELECT raw_segment_id FROM segment_usage)
+                """
+            )
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
+    except Exception as e:
+        logger.error(f"Error counting unrefined segments: {e}")
+        return 0
+
 def insert_refined_segment(
     session_id: str,
     refined_speaker_id: int,

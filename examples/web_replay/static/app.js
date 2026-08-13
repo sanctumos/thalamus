@@ -100,7 +100,7 @@
     p2Badge.classList.toggle("p2-trip", !!tripped);
   }
 
-  function setBreakerBadge(state, topicScore) {
+  function setBreakerBadge(state, topicScore, st) {
     const el = $("p2-breaker-badge");
     if (!el) return;
     if (!state) {
@@ -109,9 +109,24 @@
       return;
     }
     const ts = typeof topicScore === "number" ? ` ${topicScore.toFixed(2)}` : "";
-    el.textContent = `breaker: ${state}${ts}`;
+    let streak = "";
+    if (st && (st.on_need || st.off_need)) {
+      streak =
+        state === "on"
+          ? ` · off ${st.off_streak || 0}/${st.off_need || "?"}`
+          : ` · on ${st.on_streak || 0}/${st.on_need || "?"}`;
+    }
+    el.textContent = `breaker: ${state}${ts}${streak}`;
     el.classList.toggle("p2-breaker-on", state === "on");
     el.classList.toggle("p2-breaker-off", state === "off");
+  }
+
+  function setP1Pending(n) {
+    const el = $("p1-pending");
+    if (!el) return;
+    const v = Number(n) || 0;
+    el.hidden = v <= 0;
+    el.textContent = v > 0 ? `pending: ${v}` : "";
   }
 
   function setP2Tab(tab) {
@@ -181,12 +196,22 @@
       if (p2Breaker && p2Breaker.state) {
         const cls = p2Breaker.state === "on" ? "p2-breaker-note-on" : "p2-breaker-note-off";
         const ts = typeof p2Breaker.topic_score === "number" ? ` · topic ${p2Breaker.topic_score.toFixed(2)}` : "";
-        html += `<div class="p2-breaker-note ${cls}">Home-topic breaker: <strong>${escapeHtml(p2Breaker.state)}</strong>${ts}</div>`;
+        const st =
+          p2Breaker.on_need || p2Breaker.off_need
+            ? p2Breaker.state === "on"
+              ? ` · off-streak ${p2Breaker.off_streak || 0}/${p2Breaker.off_need || "?"}`
+              : ` · on-streak ${p2Breaker.on_streak || 0}/${p2Breaker.on_need || "?"}`
+            : "";
+        html += `<div class="p2-breaker-note ${cls}">Home-topic breaker: <strong>${escapeHtml(p2Breaker.state)}</strong>${ts}${st}</div>`;
       }
       if (!p2RefinePasses.length) {
         html += '<p class="p2-idle muted">P2 mode on — refine passes every N turns appear here.</p>';
       }
       for (const p of p2RefinePasses.slice(-6).reverse()) {
+        if (p.skip) {
+          html += `<div class="p2-breaker-note p2-breaker-note-off">breaker off · topic ${p.topic_score == null ? "—" : Number(p.topic_score).toFixed(2)} — coverage through #${p.covered_through_raw_id}, not refining</div>`;
+          continue;
+        }
         const meta = `pass #${p.pass_index || p.id} · mode=${p.mode || "?"} · topic=${p.topic_score == null ? "—" : Number(p.topic_score).toFixed(2)} · window ${p.window_start_raw_id}–${p.window_end_raw_id}`;
         html += `<div class="p2-refine-pass"><div class="p2-refine-meta">${escapeHtml(meta)}</div><div class="p2-refine-text">${escapeHtml(p.text || "")}</div></div>`;
       }
@@ -358,12 +383,29 @@
       p2Breaker = {
         state: ev.state || null,
         topic_score: typeof ev.topic_score === "number" ? ev.topic_score : null,
+        on_streak: ev.on_streak,
+        off_streak: ev.off_streak,
+        on_need: ev.on_need,
+        off_need: ev.off_need,
       };
-      setBreakerBadge(p2Breaker.state, p2Breaker.topic_score);
+      setBreakerBadge(p2Breaker.state, p2Breaker.topic_score, p2Breaker);
       if (ev.flipped) {
         log("P2", `breaker → ${String(ev.state || "?").toUpperCase()} (${ev.reason || ""})`);
       }
+      if (ev.skipped) {
+        p2RefinePasses.push({
+          skip: true,
+          topic_score: p2Breaker.topic_score,
+          covered_through_raw_id: ev.covered_through_raw_id,
+        });
+        log(
+          "P2",
+          `breaker off — coverage through #${ev.covered_through_raw_id}, not refining`
+        );
+      }
       renderP2Pane();
+    } else if (ev.type === "p1_pending") {
+      setP1Pending(ev.pending);
     } else if (ev.type === "console") {
       log(ev.level, ev.message);
     } else if (ev.type === "snapshot") {
@@ -386,13 +428,19 @@
           !!ev.p2.awaiting_review,
           !!ev.p2.escalated_latched
         );
+        if (ev.p2.breaker) {
+          Object.assign(p2Breaker, ev.p2.breaker);
+        }
         if (ev.p2.breaker_state) {
           p2Breaker.state = ev.p2.breaker_state;
           if (typeof ev.p2.topic_score === "number") {
             p2Breaker.topic_score = ev.p2.topic_score;
           }
-          setBreakerBadge(p2Breaker.state, p2Breaker.topic_score);
+          setBreakerBadge(p2Breaker.state, p2Breaker.topic_score, p2Breaker);
         }
+      }
+      if (ev.counts && typeof ev.counts.p1_pending === "number") {
+        setP1Pending(ev.counts.p1_pending);
       }
       if (ev.snapshot) {
         renderSnapshot(ev.snapshot);
@@ -444,6 +492,7 @@
     p2Breaker = { state: null, topic_score: null };
     setP2Badge(0, false, false);
     setBreakerBadge(null, null);
+    setP1Pending(0);
     setP2Tab("refine");
     renderP2Pane();
   }
@@ -769,12 +818,15 @@
     if (Array.isArray(p2.refine_passes)) {
       p2RefinePasses = p2.refine_passes;
     }
+    if (p2.breaker) {
+      Object.assign(p2Breaker, p2.breaker);
+    }
     if (p2.breaker_state) {
       p2Breaker.state = p2.breaker_state;
       if (typeof p2.topic_score === "number") {
         p2Breaker.topic_score = p2.topic_score;
       }
-      setBreakerBadge(p2Breaker.state, p2Breaker.topic_score);
+      setBreakerBadge(p2Breaker.state, p2Breaker.topic_score, p2Breaker);
     }
     setP2Badge(
       p2.running_score || 0,
@@ -807,6 +859,9 @@
         applySettings(d);
         if (d.snapshot) renderSnapshot(d.snapshot);
         hydrateP2(d.p2);
+        if (d.counts && typeof d.counts.p1_pending === "number") {
+          setP1Pending(d.counts.p1_pending);
+        }
         const n = (d.counts && d.counts.raw) || 0;
         if (n > 0) {
           log("INFO", `Hydrated ${n} raw / ${(d.counts && d.counts.refined) || 0} refined from DB`);

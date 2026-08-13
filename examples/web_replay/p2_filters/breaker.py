@@ -226,7 +226,8 @@ class TopicBreaker:
     def observe_batch(self, batch_text: str) -> Dict[str, Any]:
         """
         Score a new batch of raw segments; maybe flip state (hysteresis).
-        Returns {state, topic_score, flipped, reason, detail}.
+        Returns {state, topic_score, flipped, reason, detail, on_streak,
+        off_streak, on_score, off_score, on_need, off_need}.
         """
         settings = get_settings(self.db)
         if not settings["p2_breaker_enabled_b"]:
@@ -282,12 +283,19 @@ class TopicBreaker:
                 if score < off_score:
                     self.off_streak = min(self.off_streak + 1, off_need)
 
-        if flipped:
-            self._persist()
+        # Persist every tick (not just flips) so a refresh / restart
+        # rehydrates the exact streak state for the breaker badge.
+        self._persist()
         return {
             "state": self.state,
             "topic_score": round(score, 3),
             "flipped": flipped,
             "reason": reason,
             "detail": detail,
+            "on_streak": self.on_streak,
+            "off_streak": self.off_streak,
+            "on_score": on_score,
+            "off_score": off_score,
+            "on_need": on_need,
+            "off_need": off_need,
         }

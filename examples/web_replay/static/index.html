@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Thalamus — Omi streaming replay</title>
-  <link rel="stylesheet" href="/static/styles.css?v=p2-ui-5" />
+  <link rel="stylesheet" href="/static/styles.css?v=p2-ui-6" />
 </head>
 <body>
   <header class="top">
@@ -41,7 +41,7 @@
       <div class="pane-body" id="raw"></div>
     </section>
     <section class="pane" id="pane-refined">
-      <h2><span class="tier">P1</span> Refined / Thalamus</h2>
+      <h2><span class="tier">P1</span> Refined / Thalamus <span id="p1-pending" class="badge p1-pending-badge" title="Raw segments still awaiting P1 cleanup — lag, not failure" hidden></span></h2>
       <div class="pane-body" id="refined"></div>
     </section>
     <section class="pane" id="pane-p2">
@@ -175,6 +175,6 @@
     </div>
   </dialog>
 
-  <script src="/static/app.js?v=p2-ui-5"></script>
+  <script src="/static/app.js?v=p2-ui-6"></script>
 </body>
 </html>
