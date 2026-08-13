@@ -30,14 +30,17 @@ def load_database(db_path: Path):
 
 
 def reset_db(db_path: Path):
-    """Wipe demo replay tables only — preserve app_secrets across Play/Reset."""
+    """Wipe demo replay tables only — preserve app_secrets + doctor filter config."""
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = load_database(db_path)
     db.init_db()
     from .secrets_store import ensure_secrets_table
+    from .p2_filters.schema import ensure_p2_tables, wipe_p2_runtime
+    from .p2_filters.seed import seed_default_pack
 
     ensure_secrets_table(db)
+    ensure_p2_tables(db)
     with db.get_db() as conn:
         conn.execute("DELETE FROM segment_usage")
         conn.execute("DELETE FROM refined_segments")
@@ -53,6 +56,8 @@ def reset_db(db_path: Path):
         except Exception:
             pass
         conn.commit()
+    wipe_p2_runtime(db)
+    seed_default_pack(db)
     return db
 
 
@@ -63,8 +68,12 @@ def open_db(db_path: Path):
     db = load_database(db_path)
     db.init_db()
     from .secrets_store import ensure_secrets_table
+    from .p2_filters.schema import ensure_p2_tables
+    from .p2_filters.seed import seed_default_pack
 
     ensure_secrets_table(db)
+    ensure_p2_tables(db)
+    seed_default_pack(db)
     return db
 
 

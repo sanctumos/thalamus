@@ -49,6 +49,25 @@ def test_speed_multiplier_shortens_wait():
     assert sim.waits == [pytest.approx(1.0)]
 
 
+def test_stop_event_interrupts_long_wait():
+    import threading
+    import time
+
+    ev = threading.Event()
+    sim = TimeSimulator(speed=1.0, stop_event=ev)
+    sim.wait_before("2025-03-26T22:48:00.000000Z")
+
+    def arm():
+        time.sleep(0.05)
+        ev.set()
+
+    threading.Thread(target=arm, daemon=True).start()
+    t0 = time.monotonic()
+    sim.wait_before("2025-03-26T22:48:30.000000Z")
+    assert time.monotonic() - t0 < 2.0
+    assert sim.interrupted is True
+
+
 def test_reset_clears_last():
     sleeps = []
     sim = TimeSimulator(speed=1.0, sleep_fn=lambda s: sleeps.append(s))
